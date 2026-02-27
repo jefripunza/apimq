@@ -1,7 +1,5 @@
-import {
-  useDashboardStore,
-  type QueueItem,
-} from "@/stores/dashboardStore";
+import { useDashboardStore } from "@/stores/dashboardStore";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Inbox,
@@ -9,9 +7,13 @@ import {
   Zap,
   ArrowUpRight,
   ArrowDownRight,
-  Circle,
-  RefreshCw,
 } from "lucide-react";
+import Highcharts from "highcharts";
+import HighchartsReact from "highcharts-react-official";
+
+const HighchartsReactComponent =
+  (HighchartsReact as unknown as { default?: typeof HighchartsReact })
+    .default ?? HighchartsReact;
 
 function StatCard({
   label,
@@ -62,166 +64,143 @@ function StatCard({
   );
 }
 
-function StatusBadge({ status }: { status: QueueItem["status"] }) {
-  const config = {
-    running: {
-      color: "text-neon-green bg-neon-green/10 border-neon-green/20",
-      dot: "bg-neon-green",
-    },
-    idle: {
-      color: "text-neon-yellow bg-neon-yellow/10 border-neon-yellow/20",
-      dot: "bg-neon-yellow",
-    },
-    error: {
-      color: "text-neon-red bg-neon-red/10 border-neon-red/20",
-      dot: "bg-neon-red",
-    },
-  };
-
-  const c = config[status];
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono ${c.color}`}
-    >
-      <Circle className={`w-1.5 h-1.5 fill-current`} />
-      {status}
-    </span>
-  );
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
 }
 
-function QueueTable({ queues }: { queues: QueueItem[] }) {
-  return (
-    <div className="bg-dark-800/60 border border-dark-600/40 rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-dark-600/40 flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Active Queues</h3>
-          <p className="text-xs text-dark-400 mt-0.5 font-mono">
-            {queues.length} queues registered
-          </p>
-        </div>
-        <button className="text-dark-400 hover:text-foreground transition-colors p-2 rounded-lg hover:bg-dark-700/50">
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Desktop table */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-dark-600/30">
-              <th className="text-left text-xs font-mono text-dark-400 px-5 py-3 font-medium">
-                Queue Name
-              </th>
-              <th className="text-right text-xs font-mono text-dark-400 px-5 py-3 font-medium">
-                Messages
-              </th>
-              <th className="text-right text-xs font-mono text-dark-400 px-5 py-3 font-medium">
-                Consumers
-              </th>
-              <th className="text-right text-xs font-mono text-dark-400 px-5 py-3 font-medium">
-                Publish/s
-              </th>
-              <th className="text-right text-xs font-mono text-dark-400 px-5 py-3 font-medium">
-                Deliver/s
-              </th>
-              <th className="text-center text-xs font-mono text-dark-400 px-5 py-3 font-medium">
-                Status
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {queues.map((q) => (
-              <tr
-                key={q.name}
-                className="border-b border-dark-600/20 last:border-0 hover:bg-dark-700/20 transition-colors"
-              >
-                <td className="px-5 py-3.5">
-                  <span className="text-sm font-mono text-accent-400">
-                    {q.name}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-right">
-                  <span className="text-sm font-mono text-foreground">
-                    {q.messages.toLocaleString()}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-right">
-                  <span className="text-sm font-mono text-dark-200">
-                    {q.consumers}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-right">
-                  <span className="text-sm font-mono text-neon-green">
-                    {q.publishRate}/s
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-right">
-                  <span className="text-sm font-mono text-neon-cyan">
-                    {q.deliverRate}/s
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-center">
-                  <StatusBadge status={q.status} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile cards */}
-      <div className="md:hidden divide-y divide-dark-600/20">
-        {queues.map((q) => (
-          <div key={q.name} className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-mono text-accent-400 truncate mr-2">
-                {q.name}
-              </span>
-              <StatusBadge status={q.status} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-dark-900/40 rounded-lg px-3 py-2">
-                <p className="text-[10px] text-dark-400 font-mono">Messages</p>
-                <p className="text-sm font-mono text-foreground">
-                  {q.messages.toLocaleString()}
-                </p>
-              </div>
-              <div className="bg-dark-900/40 rounded-lg px-3 py-2">
-                <p className="text-[10px] text-dark-400 font-mono">
-                  Consumers
-                </p>
-                <p className="text-sm font-mono text-dark-200">
-                  {q.consumers}
-                </p>
-              </div>
-              <div className="bg-dark-900/40 rounded-lg px-3 py-2">
-                <p className="text-[10px] text-dark-400 font-mono">
-                  Publish/s
-                </p>
-                <p className="text-sm font-mono text-neon-green">
-                  {q.publishRate}
-                </p>
-              </div>
-              <div className="bg-dark-900/40 rounded-lg px-3 py-2">
-                <p className="text-[10px] text-dark-400 font-mono">
-                  Deliver/s
-                </p>
-                <p className="text-sm font-mono text-neon-cyan">
-                  {q.deliverRate}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function randomWalk(prev: number, base: number) {
+  const next = prev + (Math.random() - 0.5) * Math.max(1, base * 0.2);
+  return clamp(next, 0, Math.max(10, base * 2));
 }
 
 export default function DashboardPage() {
-  const { totalQueues, totalMessages, totalConsumers, messagesPerSecond, queues } =
-    useDashboardStore();
+  const {
+    totalQueues,
+    totalMessages,
+    totalConsumers,
+    messagesPerSecond,
+    queues,
+  } = useDashboardStore();
+
+  const maxPoints = 60;
+
+  const [seriesData, setSeriesData] = useState<
+    Record<string, Array<[number, number]>>
+  >({});
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const t = Date.now();
+      setSeriesData((prev) => {
+        const next: Record<string, Array<[number, number]>> = { ...prev };
+
+        for (const q of queues) {
+          const key = q.key;
+          const base = Math.max(1, q.deliverRate);
+          const existing = next[key] ?? [];
+
+          if (existing.length === 0) {
+            next[key] = Array.from({ length: maxPoints }, (_, i) => {
+              const ts = t - (maxPoints - 1 - i) * 1000;
+              const y = clamp(
+                base + (Math.random() - 0.5) * base * 0.3,
+                0,
+                base * 2,
+              );
+              return [ts, y];
+            });
+            continue;
+          }
+
+          const lastY = existing[existing.length - 1][1];
+          const y = randomWalk(lastY, base);
+          next[key] = [...existing, [t, y] as [number, number]].slice(
+            -maxPoints,
+          );
+        }
+
+        const activeKeys = new Set(queues.map((q) => q.key));
+        for (const k of Object.keys(next)) {
+          if (!activeKeys.has(k)) delete next[k];
+        }
+
+        return next;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(id);
+  }, [queues]);
+
+  const options = useMemo<Highcharts.Options>(() => {
+    const palette = [
+      "#6366f1",
+      "#22c55e",
+      "#06b6d4",
+      "#eab308",
+      "#f97316",
+      "#ec4899",
+      "#a855f7",
+      "#14b8a6",
+    ];
+
+    return {
+      time: {
+        useUTC: false,
+      } as unknown as Highcharts.TimeOptions,
+      chart: {
+        type: "spline",
+        backgroundColor: "transparent",
+        height: 360,
+        animation: false,
+        spacing: [12, 12, 12, 12],
+      },
+      title: { text: undefined },
+      credits: { enabled: false },
+      legend: {
+        enabled: true,
+        itemStyle: { color: "#cbd5e1", fontSize: "12px" },
+        itemHoverStyle: { color: "#ffffff" },
+      },
+      xAxis: {
+        type: "datetime",
+        gridLineColor: "rgba(148, 163, 184, 0.08)",
+        lineColor: "rgba(148, 163, 184, 0.18)",
+        tickColor: "rgba(148, 163, 184, 0.18)",
+        labels: {
+          style: { color: "#94a3b8", fontFamily: "ui-monospace" },
+          formatter: function () {
+            return Highcharts.dateFormat("%H:%M:%S", Number(this.value));
+          },
+        },
+      },
+      yAxis: {
+        title: { text: undefined },
+        gridLineColor: "rgba(148, 163, 184, 0.08)",
+        labels: { style: { color: "#94a3b8", fontFamily: "ui-monospace" } },
+      },
+      tooltip: {
+        shared: true,
+        backgroundColor: "rgba(2, 6, 23, 0.85)",
+        borderColor: "rgba(148, 163, 184, 0.25)",
+        style: { color: "#e2e8f0", fontFamily: "ui-monospace" },
+        xDateFormat: "%H:%M:%S",
+      },
+      plotOptions: {
+        series: {
+          animation: false,
+          marker: { enabled: false },
+          lineWidth: 2,
+        },
+      },
+      series: queues.map((q, idx) => ({
+        type: "spline",
+        name: q.name,
+        color: palette[idx % palette.length],
+        data: (seriesData[q.key] ??
+          []) as unknown as Highcharts.SeriesSplineOptions["data"],
+      })),
+    };
+  }, [queues, seriesData]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -265,8 +244,20 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Queue table */}
-      <QueueTable queues={queues} />
+      {/* Queue chart */}
+      <div className="bg-dark-800/60 border border-dark-600/40 rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-dark-600/40">
+          <h3 className="text-sm font-semibold text-foreground">
+            Queue Throughput
+          </h3>
+          <p className="text-xs text-dark-400 mt-0.5 font-mono">
+            Live random chart (updates every second) - 1 line per queue
+          </p>
+        </div>
+        <div className="p-4">
+          <HighchartsReactComponent highcharts={Highcharts} options={options} />
+        </div>
+      </div>
     </div>
   );
 }
