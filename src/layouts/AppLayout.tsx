@@ -2,16 +2,16 @@ import { Outlet, useNavigate, useLocation } from "react-router";
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { useSidebarStore } from "@/stores/sidebarStore";
+import { useThemeStore } from "@/stores/themeStore";
 import {
   LayoutDashboard,
   ScrollText,
   Zap,
   LogOut,
-  PanelLeftClose,
-  PanelLeft,
   Menu,
   X,
-  User,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 const navItems = [
@@ -29,10 +29,10 @@ const navItems = [
 
 export default function AppLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const { isCollapsed, isMobileOpen, toggleCollapse, setMobileOpen } =
     useSidebarStore();
+  const { isDarkMode, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -67,7 +67,7 @@ export default function AppLayout() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full z-50 bg-dark-800 border-r border-dark-600/50 flex flex-col transition-all duration-300 ease-in-out
+          fixed top-0 left-0 h-screen z-50 bg-dark-800 border-r border-dark-600/50 flex flex-col transition-all duration-300 ease-in-out
           lg:relative lg:translate-x-0
           ${isMobileOpen ? "translate-x-0 w-[260px]" : "-translate-x-full lg:translate-x-0"}
           ${!isMobileOpen ? sidebarWidth : ""}
@@ -75,6 +75,15 @@ export default function AppLayout() {
       >
         {/* Sidebar Header */}
         <div className="h-16 flex items-center px-4 border-b border-dark-600/50 shrink-0">
+          {/* Desktop hamburger toggle */}
+          <button
+            onClick={toggleCollapse}
+            className="hidden lg:flex text-dark-300 hover:text-white transition-colors mr-3 shrink-0"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative shrink-0">
               <div className="w-9 h-9 rounded-lg bg-accent-500/20 border border-accent-500/30 flex items-center justify-center">
@@ -134,39 +143,6 @@ export default function AppLayout() {
 
         {/* Sidebar Footer */}
         <div className="border-t border-dark-600/50 p-3 space-y-2 shrink-0">
-          {/* User info */}
-          {(!isCollapsed || isMobileOpen) && user && (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-dark-700/30">
-              <div className="w-8 h-8 rounded-lg bg-accent-500/20 flex items-center justify-center shrink-0">
-                <User className="w-4 h-4 text-accent-400" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-white truncate">
-                  {user.username}
-                </p>
-                <p className="text-[10px] text-dark-400 font-mono">
-                  {user.role}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Collapse toggle (desktop only) */}
-          <button
-            onClick={toggleCollapse}
-            className="hidden lg:flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-dark-300 hover:text-white hover:bg-dark-700/50 transition-all"
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? (
-              <PanelLeft className="w-[18px] h-[18px] shrink-0 mx-auto" />
-            ) : (
-              <>
-                <PanelLeftClose className="w-[18px] h-[18px] shrink-0" />
-                <span>Collapse</span>
-              </>
-            )}
-          </button>
-
           {/* Logout */}
           <button
             onClick={handleLogout}
@@ -201,11 +177,24 @@ export default function AppLayout() {
 
           {/* Right side */}
           <div className="ml-auto flex items-center gap-3">
+            {/* Dark mode toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-dark-300 hover:text-white hover:bg-dark-700/50 transition-all"
+              title={
+                isDarkMode ? "Switch to light mode" : "Switch to dark mode"
+              }
+            >
+              {isDarkMode ? (
+                <Sun className="w-4 h-4" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
+            </button>
+
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-dark-700/50 rounded-lg border border-dark-600/30">
               <div className="w-2 h-2 rounded-full bg-neon-green animate-pulse-glow" />
-              <span className="text-xs font-mono text-dark-300">
-                connected
-              </span>
+              <span className="text-xs font-mono text-dark-300">connected</span>
             </div>
           </div>
         </header>
@@ -218,4 +207,3 @@ export default function AppLayout() {
     </div>
   );
 }
-
