@@ -54,7 +54,7 @@ function StatCard({
           </div>
         )}
       </div>
-      <p className="text-2xl font-bold text-white tracking-tight">
+      <p className="text-2xl font-bold text-foreground tracking-tight">
         {typeof value === "number" ? value.toLocaleString() : value}
       </p>
       <p className="text-sm text-dark-300 mt-1">{label}</p>
@@ -95,12 +95,12 @@ function QueueTable({ queues }: { queues: QueueItem[] }) {
     <div className="bg-dark-800/60 border border-dark-600/40 rounded-2xl overflow-hidden">
       <div className="px-5 py-4 border-b border-dark-600/40 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white">Active Queues</h3>
+          <h3 className="text-sm font-semibold text-foreground">Active Queues</h3>
           <p className="text-xs text-dark-400 mt-0.5 font-mono">
             {queues.length} queues registered
           </p>
         </div>
-        <button className="text-dark-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-dark-700/50">
+        <button className="text-dark-400 hover:text-foreground transition-colors p-2 rounded-lg hover:bg-dark-700/50">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
@@ -142,7 +142,7 @@ function QueueTable({ queues }: { queues: QueueItem[] }) {
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
-                  <span className="text-sm font-mono text-white">
+                  <span className="text-sm font-mono text-foreground">
                     {q.messages.toLocaleString()}
                   </span>
                 </td>
@@ -183,7 +183,7 @@ function QueueTable({ queues }: { queues: QueueItem[] }) {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-dark-900/40 rounded-lg px-3 py-2">
                 <p className="text-[10px] text-dark-400 font-mono">Messages</p>
-                <p className="text-sm font-mono text-white">
+                <p className="text-sm font-mono text-foreground">
                   {q.messages.toLocaleString()}
                 </p>
               </div>
@@ -227,7 +227,7 @@ export default function DashboardPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Page header */}
       <div>
-        <h2 className="text-xl font-bold text-white">Dashboard</h2>
+        <h2 className="text-xl font-bold text-foreground">Dashboard</h2>
         <p className="text-sm text-dark-300 mt-1">
           Real-time overview of your message queues and consumers
         </p>

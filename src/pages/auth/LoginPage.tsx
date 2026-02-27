@@ -44,7 +44,7 @@ export default function LoginPage() {
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-neon-green rounded-full animate-pulse-glow" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">
             ApiMQ
           </h1>
           <p className="text-xs text-dark-300 font-mono">
@@ -92,7 +92,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter username"
-                className="w-full px-4 py-3 bg-dark-900/60 border border-dark-500/50 rounded-xl text-white placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                className="w-full px-4 py-3 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
                 required
                 autoFocus
               />
@@ -109,7 +109,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"
-                  className="w-full px-4 py-3 pr-12 bg-dark-900/60 border border-dark-500/50 rounded-xl text-white placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                  className="w-full px-4 py-3 pr-12 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
                   required
                 />
                 <button

@@ -112,7 +112,7 @@ export default function AppLayout() {
                   <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-neon-green rounded-full animate-pulse-glow" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-base font-bold text-white tracking-tight truncate">
+                  <h1 className="text-base font-bold text-foreground tracking-tight truncate">
                     ApiMQ
                   </h1>
                   <p className="text-[10px] text-dark-400 font-mono truncate">
@@ -125,7 +125,7 @@ export default function AppLayout() {
             {/* Desktop collapse hamburger (RIGHT side) */}
             <button
               onClick={toggleCollapse}
-              className="hidden lg:flex text-dark-300 hover:text-white transition-colors shrink-0 ml-auto"
+              className="hidden lg:flex text-dark-300 hover:text-foreground transition-colors shrink-0 ml-auto"
               title={effectiveCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               <Menu className="w-5 h-5" />
@@ -134,7 +134,7 @@ export default function AppLayout() {
             {/* Mobile close button */}
             <button
               onClick={() => setMobileOpen(false)}
-              className="ml-auto lg:hidden text-dark-300 hover:text-white transition-colors"
+              className="ml-auto lg:hidden text-dark-300 hover:text-foreground transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -155,7 +155,7 @@ export default function AppLayout() {
                   ${
                     isActive
                       ? "bg-accent-500/15 text-accent-400 border border-accent-500/20"
-                      : "text-dark-300 hover:text-white hover:bg-dark-700/50 border border-transparent"
+                      : "text-dark-300 hover:text-foreground hover:bg-dark-700/50 border border-transparent"
                   }
                   ${effectiveCollapsed && !isMobileOpen ? "justify-center" : ""}
                 `}
@@ -191,7 +191,7 @@ export default function AppLayout() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden text-dark-300 hover:text-white transition-colors mr-4"
+            className="lg:hidden text-dark-300 hover:text-foreground transition-colors mr-4"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -209,7 +209,7 @@ export default function AppLayout() {
             {/* Dark mode toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg text-dark-300 hover:text-white hover:bg-dark-700/50 transition-all"
+              className="p-2 rounded-lg text-dark-300 hover:text-foreground hover:bg-dark-700/50 transition-all"
               title={
                 isDarkMode ? "Switch to light mode" : "Switch to dark mode"
               }
