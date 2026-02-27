@@ -1,9 +1,11 @@
 import { Outlet, useNavigate } from "react-router";
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/authStore";
+import { useThemeStore } from "@/stores/themeStore";
 
 export default function AuthLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDarkMode = useThemeStore((s) => s.isDarkMode);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -11,6 +13,15 @@ export default function AuthLayout() {
       navigate("/app/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.removeAttribute("data-theme");
+    } else {
+      root.setAttribute("data-theme", "light");
+    }
+  }, [isDarkMode]);
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-dark-900 overflow-hidden">

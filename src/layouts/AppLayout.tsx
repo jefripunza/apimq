@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from "react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { useSidebarStore } from "@/stores/sidebarStore";
 import { useThemeStore } from "@/stores/themeStore";
@@ -30,17 +30,42 @@ const navItems = [
 export default function AppLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const logout = useAuthStore((s) => s.logout);
-  const { isCollapsed, isMobileOpen, toggleCollapse, setMobileOpen } =
+  const { isCollapsed, isMobileOpen, toggleCollapse, setCollapsed, setMobileOpen } =
     useSidebarStore();
   const { isDarkMode, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/", { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)"); // lg
+    const apply = () => {
+      const nextIsDesktop = mq.matches;
+      setIsDesktop(nextIsDesktop);
+      if (!nextIsDesktop) {
+        setCollapsed(false);
+      }
+    };
+
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, [setCollapsed]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.removeAttribute("data-theme");
+    } else {
+      root.setAttribute("data-theme", "light");
+    }
+  }, [isDarkMode]);
 
   const handleLogout = () => {
     logout();
@@ -52,7 +77,8 @@ export default function AppLayout() {
     setMobileOpen(false);
   };
 
-  const sidebarWidth = isCollapsed ? "w-[72px]" : "w-[260px]";
+  const effectiveCollapsed = isDesktop ? isCollapsed : false;
+  const sidebarWidth = effectiveCollapsed ? "w-[72px]" : "w-[260px]";
 
   return (
     <div className="min-h-screen bg-dark-900 flex">
@@ -75,41 +101,44 @@ export default function AppLayout() {
       >
         {/* Sidebar Header */}
         <div className="h-16 flex items-center px-4 border-b border-dark-600/50 shrink-0">
-          {/* Desktop hamburger toggle */}
-          <button
-            onClick={toggleCollapse}
-            className="hidden lg:flex text-dark-300 hover:text-white transition-colors mr-3 shrink-0"
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="relative shrink-0">
-              <div className="w-9 h-9 rounded-lg bg-accent-500/20 border border-accent-500/30 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-accent-400" />
-              </div>
-              <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-neon-green rounded-full animate-pulse-glow" />
-            </div>
-            {(!isCollapsed || isMobileOpen) && (
-              <div className="min-w-0">
-                <h1 className="text-base font-bold text-white tracking-tight truncate">
-                  ApiMQ
-                </h1>
-                <p className="text-[10px] text-dark-400 font-mono truncate">
-                  v0.1.0
-                </p>
+          <div className="flex items-center w-full min-w-0">
+            {/* Logo - hidden when collapsed */}
+            {(!effectiveCollapsed || isMobileOpen) && (
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-accent-500/20 border border-accent-500/30 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-accent-400" />
+                  </div>
+                  <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-neon-green rounded-full animate-pulse-glow" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-base font-bold text-white tracking-tight truncate">
+                    ApiMQ
+                  </h1>
+                  <p className="text-[10px] text-dark-400 font-mono truncate">
+                    v0.1.0
+                  </p>
+                </div>
               </div>
             )}
-          </div>
 
-          {/* Mobile close button */}
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="ml-auto lg:hidden text-dark-300 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+            {/* Desktop collapse hamburger (RIGHT side) */}
+            <button
+              onClick={toggleCollapse}
+              className="hidden lg:flex text-dark-300 hover:text-white transition-colors shrink-0 ml-auto"
+              title={effectiveCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Mobile close button */}
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="ml-auto lg:hidden text-dark-300 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -128,12 +157,12 @@ export default function AppLayout() {
                       ? "bg-accent-500/15 text-accent-400 border border-accent-500/20"
                       : "text-dark-300 hover:text-white hover:bg-dark-700/50 border border-transparent"
                   }
-                  ${isCollapsed && !isMobileOpen ? "justify-center" : ""}
+                  ${effectiveCollapsed && !isMobileOpen ? "justify-center" : ""}
                 `}
-                title={isCollapsed ? item.label : undefined}
+                title={effectiveCollapsed ? item.label : undefined}
               >
                 <Icon className="w-[18px] h-[18px] shrink-0" />
-                {(!isCollapsed || isMobileOpen) && (
+                {(!effectiveCollapsed || isMobileOpen) && (
                   <span className="truncate">{item.label}</span>
                 )}
               </button>
@@ -146,11 +175,11 @@ export default function AppLayout() {
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-dark-300 hover:text-neon-red hover:bg-neon-red/5 transition-all ${isCollapsed && !isMobileOpen ? "justify-center" : ""}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-dark-300 hover:text-neon-red hover:bg-neon-red/5 transition-all ${effectiveCollapsed && !isMobileOpen ? "justify-center" : ""}`}
             title="Sign out"
           >
             <LogOut className="w-[18px] h-[18px] shrink-0" />
-            {(!isCollapsed || isMobileOpen) && <span>Sign Out</span>}
+            {(!effectiveCollapsed || isMobileOpen) && <span>Sign Out</span>}
           </button>
         </div>
       </aside>
