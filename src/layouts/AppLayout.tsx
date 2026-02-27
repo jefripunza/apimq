@@ -21,8 +21,8 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    label: "Rules",
-    path: "/app/rules",
+    label: "Group",
+    path: "/app/group",
     icon: ScrollText,
   },
 ];
@@ -30,8 +30,13 @@ const navItems = [
 export default function AppLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const logout = useAuthStore((s) => s.logout);
-  const { isCollapsed, isMobileOpen, toggleCollapse, setCollapsed, setMobileOpen } =
-    useSidebarStore();
+  const {
+    isCollapsed,
+    isMobileOpen,
+    toggleCollapse,
+    setCollapsed,
+    setMobileOpen,
+  } = useSidebarStore();
   const { isDarkMode, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -95,7 +100,7 @@ export default function AppLayout() {
         className={`
           fixed top-0 left-0 h-screen z-50 bg-dark-800 border-r border-dark-600/50 flex flex-col transition-all duration-300 ease-in-out
           lg:relative lg:translate-x-0
-          ${isMobileOpen ? "translate-x-0 w-[260px]" : "-translate-x-full lg:translate-x-0"}
+          ${isMobileOpen ? "translate-x-0 w-65" : "-translate-x-full lg:translate-x-0"}
           ${!isMobileOpen ? sidebarWidth : ""}
         `}
       >
@@ -161,7 +166,7 @@ export default function AppLayout() {
                 `}
                 title={effectiveCollapsed ? item.label : undefined}
               >
-                <Icon className="w-[18px] h-[18px] shrink-0" />
+                <Icon className="w-4.5 h-4.5 shrink-0" />
                 {(!effectiveCollapsed || isMobileOpen) && (
                   <span className="truncate">{item.label}</span>
                 )}
@@ -178,7 +183,7 @@ export default function AppLayout() {
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-dark-300 hover:text-neon-red hover:bg-neon-red/5 transition-all ${effectiveCollapsed && !isMobileOpen ? "justify-center" : ""}`}
             title="Sign out"
           >
-            <LogOut className="w-[18px] h-[18px] shrink-0" />
+            <LogOut className="w-4.5 h-4.5 shrink-0" />
             {(!effectiveCollapsed || isMobileOpen) && <span>Sign Out</span>}
           </button>
         </div>

@@ -12,7 +12,7 @@ import AppLayout from "@/layouts/AppLayout";
 // Pages
 import LoginPage from "@/pages/auth/LoginPage";
 import DashboardPage from "@/pages/app/DashboardPage";
-import RulesPage from "@/pages/app/RulesPage";
+import GroupPage from "@/pages/app/GroupPage";
 
 // Errors
 import ErrorBoundaryPage from "@/pages/error/ErrorBoundaryPage";
@@ -42,8 +42,8 @@ const router = createBrowserRouter([
             element: <DashboardPage />,
           },
           {
-            path: "rules",
-            element: <RulesPage />,
+            path: "group",
+            element: <GroupPage />,
           },
         ],
       },

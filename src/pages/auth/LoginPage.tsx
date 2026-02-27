@@ -69,9 +69,7 @@ export default function LoginPage() {
             <div className="flex items-center gap-2 text-xs font-mono">
               <Terminal className="w-3.5 h-3.5 text-neon-green" />
               <span className="text-neon-green">$</span>
-              <span className="text-dark-200">
-                apimq connect --dashboard
-              </span>
+              <span className="text-dark-200">apimq connect --dashboard</span>
             </div>
           </div>
 
