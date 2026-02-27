@@ -113,7 +113,21 @@ export default function QueueSetupPage() {
   useEffect(() => {
     const prefill = (
       location.state as {
-        prefill?: { name?: string; key?: string; origin?: string };
+        prefill?: {
+          name?: string;
+          key?: string;
+          origin?: string;
+          batchCount?: string;
+          headers?: Array<{ key: string; value: string }>;
+          schema?: SchemaType;
+          delayRandom?: boolean;
+          delaySec?: string;
+          delaySecMin?: string;
+          delaySecMax?: string;
+          timingDatetime?: string;
+          errorTrace?: boolean;
+          errorWebhook?: string;
+        };
       } | null
     )?.prefill;
     if (!prefill) return;
@@ -121,6 +135,42 @@ export default function QueueSetupPage() {
     if (typeof prefill.name === "string") setName(prefill.name);
     if (typeof prefill.key === "string") setKey(prefill.key);
     if (typeof prefill.origin === "string") setOrigin(prefill.origin);
+
+    if (typeof prefill.batchCount === "string")
+      setBatchCount(prefill.batchCount);
+
+    if (Array.isArray(prefill.headers)) {
+      setHeaders(
+        prefill.headers.map((h) => ({
+          id: uid(),
+          key: h.key ?? "",
+          value: h.value ?? "",
+        })),
+      );
+    }
+
+    if (
+      prefill.schema === "delay" ||
+      prefill.schema === "timing" ||
+      prefill.schema === ""
+    ) {
+      setSchema(prefill.schema);
+    }
+
+    if (typeof prefill.delayRandom === "boolean")
+      setDelayRandom(prefill.delayRandom);
+    if (typeof prefill.delaySec === "string") setDelaySec(prefill.delaySec);
+    if (typeof prefill.delaySecMin === "string")
+      setDelaySecMin(prefill.delaySecMin);
+    if (typeof prefill.delaySecMax === "string")
+      setDelaySecMax(prefill.delaySecMax);
+    if (typeof prefill.timingDatetime === "string")
+      setTimingDatetime(prefill.timingDatetime);
+
+    if (typeof prefill.errorTrace === "boolean")
+      setErrorTrace(prefill.errorTrace);
+    if (typeof prefill.errorWebhook === "string")
+      setErrorWebhook(prefill.errorWebhook);
   }, [location.state]);
 
   // ---- key check on blur ----
