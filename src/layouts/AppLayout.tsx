@@ -104,10 +104,10 @@ export default function AppLayout() {
   };
 
   const effectiveCollapsed = isDesktop ? isCollapsed : false;
-  const sidebarWidth = effectiveCollapsed ? "w-[72px]" : "w-[260px]";
+  const sidebarWidth = effectiveCollapsed ? "w-[72px]" : "w-65";
 
   return (
-    <div className="min-h-screen bg-dark-900 flex">
+    <div className="h-screen overflow-hidden bg-dark-900 flex">
       {/* Mobile overlay */}
       {isMobileOpen && (
         <div
@@ -211,7 +211,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Top bar */}
         <header className="h-16 bg-dark-800/60 backdrop-blur-md border-b border-dark-600/50 flex items-center px-4 lg:px-6 shrink-0 sticky top-0 z-30">
           {/* Mobile menu toggle */}
@@ -255,7 +255,7 @@ export default function AppLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main className="flex-1 min-h-0 p-4 lg:p-6 overflow-y-auto overflow-x-hidden">
           <Outlet />
         </main>
       </div>

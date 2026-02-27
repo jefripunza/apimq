@@ -86,6 +86,7 @@ export default function QueueSetupPage() {
 
   // schema
   const [schema, setSchema] = useState<SchemaType>("");
+  const [batchCount, setBatchCount] = useState("1");
   // delay sub-fields
   const [delayRandom, setDelayRandom] = useState(false);
   const [delaySec, setDelaySec] = useState("");
@@ -147,6 +148,7 @@ export default function QueueSetupPage() {
         name: name.trim(),
         key: key.trim(),
         origin: origin.trim(),
+        batchCount: Number(batchCount) || 1,
         headers: headers
           .filter((h) => h.key.trim())
           .map((h) => ({ key: h.key.trim(), value: h.value.trim() })),
@@ -293,7 +295,7 @@ export default function QueueSetupPage() {
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 setOrigin(e.target.value)
               }
-              placeholder="https://your-service.com/webhook"
+              placeholder="https://your-service.com"
               required
             />
             <p className="text-[11px] text-dark-400 font-mono mt-1">
@@ -351,12 +353,33 @@ export default function QueueSetupPage() {
           </button>
         </div>
 
+        {/* Batch */}
+        <div className="bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4">
+          <SectionTitle>Batch</SectionTitle>
+          <div>
+            <Label required>Batch Count</Label>
+            <Input
+              type="number"
+              min={1}
+              value={batchCount}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                setBatchCount(e.target.value)
+              }
+              placeholder="1"
+              required
+            />
+            <p className="text-[11px] text-dark-400 font-mono mt-1">
+              Number of messages to deliver per run.
+            </p>
+          </div>
+        </div>
+
         {/* Schema */}
         <div className="bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4">
           <SectionTitle>Schema</SectionTitle>
 
           <div>
-            <Label>Delivery Schema</Label>
+            <Label required>Delivery Schema</Label>
             <select
               value={schema}
               onChange={(e) => {
@@ -368,6 +391,7 @@ export default function QueueSetupPage() {
                 setTimingDatetime("");
               }}
               className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+              required
             >
               <option value="">— None —</option>
               <option value="delay">Delay</option>

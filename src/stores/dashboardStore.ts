@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 export interface QueueItem {
   name: string;
+  key: string;
   messages: number;
   consumers: number;
   publishRate: number;
@@ -28,6 +29,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
   queues: [
     {
       name: "order.processing",
+      key: "order.processing",
       messages: 1_243,
       consumers: 3,
       publishRate: 120,
@@ -36,6 +38,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     },
     {
       name: "email.notifications",
+      key: "email.notifications",
       messages: 892,
       consumers: 2,
       publishRate: 85,
@@ -44,6 +47,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     },
     {
       name: "payment.webhook",
+      key: "payment.webhook",
       messages: 456,
       consumers: 1,
       publishRate: 45,
@@ -52,6 +56,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     },
     {
       name: "analytics.events",
+      key: "analytics.events",
       messages: 12_304,
       consumers: 4,
       publishRate: 340,
@@ -60,6 +65,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     },
     {
       name: "user.registration",
+      key: "user.registration",
       messages: 23,
       consumers: 1,
       publishRate: 5,
@@ -68,6 +74,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     },
     {
       name: "inventory.sync",
+      key: "inventory.sync",
       messages: 8_901,
       consumers: 0,
       publishRate: 200,
@@ -76,6 +83,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     },
     {
       name: "log.aggregation",
+      key: "log.aggregation",
       messages: 24_573,
       consumers: 2,
       publishRate: 452,

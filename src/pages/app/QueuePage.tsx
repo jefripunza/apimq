@@ -3,8 +3,6 @@ import { useDashboardStore, type QueueItem } from "@/stores/dashboardStore";
 import {
   Plus,
   Activity,
-  Users,
-  Zap,
   Circle,
   ArrowUpRight,
   Settings2,
@@ -56,9 +54,7 @@ function QueueCard({ queue }: { queue: QueueItem }) {
         <div className="flex items-center gap-2 shrink-0">
           <StatusBadge status={queue.status} />
           <button
-            onClick={() =>
-              navigate(`/app/queue/${encodeURIComponent(queue.name)}/setup`)
-            }
+            onClick={() => navigate(`/app/queue/${queue.key}/setup`)}
             className="p-1.5 rounded-lg text-dark-400 hover:text-foreground hover:bg-dark-700/50 transition-all opacity-0 group-hover:opacity-100"
             title="Configure queue"
           >
@@ -68,23 +64,16 @@ function QueueCard({ queue }: { queue: QueueItem }) {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         <div className="bg-dark-900/40 rounded-xl px-3 py-2.5">
           <div className="flex items-center gap-1.5 mb-1">
             <Activity className="w-3 h-3 text-dark-400" />
-            <p className="text-[10px] text-dark-400 font-mono">Messages</p>
+            <p className="text-[10px] text-dark-400 font-mono">
+              Messages in queue
+            </p>
           </div>
           <p className="text-base font-bold text-foreground font-mono">
             {queue.messages.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-dark-900/40 rounded-xl px-3 py-2.5">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Users className="w-3 h-3 text-dark-400" />
-            <p className="text-[10px] text-dark-400 font-mono">Consumers</p>
-          </div>
-          <p className="text-base font-bold text-foreground font-mono">
-            {queue.consumers}
           </p>
         </div>
       </div>
@@ -100,15 +89,6 @@ function QueueCard({ queue }: { queue: QueueItem }) {
           <FileText className="w-3 h-3" />
           <span>{queue.deliverRate}</span>
           <span className="text-dark-500 ml-1">done</span>
-        </div>
-        <div className="flex items-center gap-1 text-xs font-mono text-dark-300">
-          <Zap className="w-3 h-3" />
-          <span>
-            {queue.publishRate > 0
-              ? Math.round((queue.deliverRate / queue.publishRate) * 100)
-              : 0}
-            %
-          </span>
         </div>
       </div>
     </div>
@@ -154,7 +134,7 @@ export default function QueuePage() {
       </div>
 
       {/* Queue cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {queues.map((queue) => (
           <QueueCard key={queue.name} queue={queue} />
         ))}
