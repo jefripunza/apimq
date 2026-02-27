@@ -5,13 +5,16 @@ import { useSidebarStore } from "@/stores/sidebarStore";
 import { useThemeStore } from "@/stores/themeStore";
 import {
   LayoutDashboard,
-  ScrollText,
   Zap,
   LogOut,
   Menu,
   X,
   Sun,
   Moon,
+  Settings,
+  Shield,
+  FileText,
+  Group,
 } from "lucide-react";
 
 const navItems = [
@@ -21,9 +24,27 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    label: "Group",
-    path: "/app/group",
-    icon: ScrollText,
+    label: "Queues",
+    path: "/app/queues",
+    icon: Group,
+  },
+  {
+    label: "Log",
+    path: "/app/log",
+    icon: FileText,
+  },
+  {
+    label: "Whitelist",
+    path: "/app/whitelist",
+    icon: Shield,
+  },
+
+  // ----------------------- //
+
+  {
+    label: "Setting",
+    path: "/app/setting",
+    icon: Settings,
   },
 ];
 

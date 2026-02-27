@@ -12,7 +12,11 @@ import AppLayout from "@/layouts/AppLayout";
 // Pages
 import LoginPage from "@/pages/auth/LoginPage";
 import DashboardPage from "@/pages/app/DashboardPage";
-import GroupPage from "@/pages/app/GroupPage";
+import QueuePage from "@/pages/app/QueuePage";
+import QueueSetupPage from "@/pages/app/QueueSetupPage";
+import LogPage from "@/pages/app/LogPage";
+import WhitelistPage from "@/pages/app/WhitelistPage";
+import SettingsPage from "@/pages/app/SettingPage";
 
 // Errors
 import ErrorBoundaryPage from "@/pages/error/ErrorBoundaryPage";
@@ -42,8 +46,24 @@ const router = createBrowserRouter([
             element: <DashboardPage />,
           },
           {
-            path: "group",
-            element: <GroupPage />,
+            path: "queues",
+            element: <QueuePage />,
+          },
+          {
+            path: "queue/:id/setup",
+            element: <QueueSetupPage />,
+          },
+          {
+            path: "log",
+            element: <LogPage />,
+          },
+          {
+            path: "whitelist",
+            element: <WhitelistPage />,
+          },
+          {
+            path: "setting",
+            element: <SettingsPage />,
           },
         ],
       },

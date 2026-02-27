@@ -4,7 +4,6 @@ import { useAuthStore } from "@/stores/authStore";
 import { Eye, EyeOff, Terminal, Zap, Lock } from "lucide-react";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +19,7 @@ export default function LoginPage() {
     try {
       // TODO: Replace with actual API call
       await new Promise((resolve) => setTimeout(resolve, 800));
-      if (username === "admin" && password === "admin") {
+      if (password === "admin") {
         login("mock-jwt-token", { username: "admin", role: "admin" });
         navigate("/app/dashboard", { replace: true });
       } else {
@@ -64,15 +63,6 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {/* Terminal-style hint */}
-          <div className="bg-dark-900/80 rounded-lg p-3 mb-6 border border-dark-600/30">
-            <div className="flex items-center gap-2 text-xs font-mono">
-              <Terminal className="w-3.5 h-3.5 text-neon-green" />
-              <span className="text-neon-green">$</span>
-              <span className="text-dark-200">apimq connect --dashboard</span>
-            </div>
-          </div>
-
           {error && (
             <div className="bg-neon-red/10 border border-neon-red/20 rounded-lg px-4 py-3 mb-4">
               <p className="text-sm text-neon-red font-mono">{error}</p>
@@ -80,22 +70,6 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Username */}
-            <div>
-              <label className="block text-sm font-medium text-dark-200 mb-2">
-                Username
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                className="w-full px-4 py-3 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                required
-                autoFocus
-              />
-            </div>
-
             {/* Password */}
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-2">
