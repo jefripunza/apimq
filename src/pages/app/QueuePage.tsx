@@ -1,39 +1,21 @@
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { useDashboardStore, type QueueItem } from "@/stores/dashboardStore";
+import { Plus, Activity, ArrowUpRight, FileText, Settings } from "lucide-react";
 import {
-  Plus,
-  Activity,
-  Circle,
-  ArrowUpRight,
-  Settings2,
-  FileText,
-} from "lucide-react";
-
-function StatusBadge({ status }: { status: QueueItem["status"] }) {
-  const config = {
-    running: {
-      color: "text-neon-green bg-neon-green/10 border-neon-green/20",
-    },
-    idle: {
-      color: "text-neon-yellow bg-neon-yellow/10 border-neon-yellow/20",
-    },
-    error: {
-      color: "text-neon-red bg-neon-red/10 border-neon-red/20",
-    },
-  };
-  const c = config[status];
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-mono ${c.color}`}
-    >
-      <Circle className="w-1.5 h-1.5 fill-current" />
-      {status}
-    </span>
-  );
-}
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 
 function QueueCard({ queue }: { queue: QueueItem }) {
   const navigate = useNavigate();
+  const toggleQueueEnabled = useDashboardStore((s) => s.toggleQueueEnabled);
   const isError = queue.status === "error";
 
   return (
@@ -47,19 +29,27 @@ function QueueCard({ queue }: { queue: QueueItem }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-sm font-mono font-semibold text-accent-400 truncate">
-            {queue.name}
-          </h3>
+          <button
+            type="button"
+            onClick={() => navigate(`/app/queue/${queue.key}/setup`)}
+            className="text-left w-full"
+            title="Open setup"
+          >
+            <h3 className="text-sm font-mono font-semibold text-accent-400 truncate hover:underline">
+              {queue.name}
+            </h3>
+          </button>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <StatusBadge status={queue.status} />
-          <button
-            onClick={() => navigate(`/app/queue/${queue.key}/setup`)}
-            className="p-1.5 rounded-lg text-dark-400 hover:text-foreground hover:bg-dark-700/50 transition-all opacity-0 group-hover:opacity-100"
-            title="Configure queue"
-          >
-            <Settings2 className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-2 pl-1">
+            <Switch
+              checked={queue.enabled}
+              onCheckedChange={(checked) =>
+                toggleQueueEnabled(queue.key, checked)
+              }
+              aria-label={queue.enabled ? "Queue enabled" : "Queue disabled"}
+            />
+          </div>
         </div>
       </div>
 
@@ -90,6 +80,15 @@ function QueueCard({ queue }: { queue: QueueItem }) {
           <span>{queue.deliverRate}</span>
           <span className="text-dark-500 ml-1">done</span>
         </div>
+        <div className="flex items-center gap-1 text-xs font-mono text-neon-cyan">
+          <button
+            onClick={() => navigate(`/app/queue/${queue.key}/setup`)}
+            className="p-1.5 rounded-lg text-dark-400 hover:text-foreground hover:bg-dark-700/50 transition-all opacity-100"
+            title="Configure queue"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -98,10 +97,24 @@ function QueueCard({ queue }: { queue: QueueItem }) {
 export default function QueuePage() {
   const { queues } = useDashboardStore();
   const navigate = useNavigate();
+  const [isNewOpen, setIsNewOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newKey, setNewKey] = useState("");
+  const [newOrigin, setNewOrigin] = useState("");
 
-  const running = queues.filter((q) => q.status === "running").length;
-  const idle = queues.filter((q) => q.status === "idle").length;
-  const error = queues.filter((q) => q.status === "error").length;
+  const handleCreateNew = (e: FormEvent) => {
+    e.preventDefault();
+    setIsNewOpen(false);
+    navigate("/app/queue/new/setup", {
+      state: {
+        prefill: {
+          name: newName,
+          key: newKey,
+          origin: newOrigin,
+        },
+      },
+    });
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -113,24 +126,84 @@ export default function QueuePage() {
             Manage and monitor your message queues
           </p>
         </div>
-        <button
-          onClick={() => navigate("/app/queues/new/setup")}
-          className="flex items-center gap-2 px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25 shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Queue</span>
-        </button>
-      </div>
+        <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
+          <DialogTrigger asChild>
+            <button className="flex items-center gap-2 px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25 shrink-0">
+              <Plus className="w-4 h-4" />
+              <span>New Queue</span>
+            </button>
+          </DialogTrigger>
+          <DialogContent
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+          >
+            <DialogHeader>
+              <DialogTitle>Create queue</DialogTitle>
+              <DialogDescription>
+                Quick-add basic info. You can complete advanced settings on the
+                next step.
+              </DialogDescription>
+            </DialogHeader>
 
-      {/* Summary bar */}
-      <div className="flex items-center gap-4 px-4 py-3 bg-dark-800/40 border border-dark-600/30 rounded-xl text-xs font-mono">
-        <span className="text-dark-400">{queues.length} total</span>
-        <span className="text-dark-600">|</span>
-        <span className="text-neon-green">{running} running</span>
-        <span className="text-dark-600">|</span>
-        <span className="text-neon-yellow">{idle} idle</span>
-        <span className="text-dark-600">|</span>
-        <span className="text-neon-red">{error} error</span>
+            <form onSubmit={handleCreateNew} className="space-y-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                  Name<span className="text-neon-red ml-1">*</span>
+                </label>
+                <input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. order.processing"
+                  className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                  Key<span className="text-neon-red ml-1">*</span>
+                </label>
+                <input
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value)}
+                  placeholder="unique-queue-key"
+                  className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                  Origin<span className="text-neon-red ml-1">*</span>
+                </label>
+                <input
+                  value={newOrigin}
+                  onChange={(e) => setNewOrigin(e.target.value)}
+                  placeholder="https://your-service.com"
+                  className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                  required
+                />
+              </div>
+
+              <DialogFooter className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNewOpen(false)}
+                  className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
+                >
+                  Continue
+                </button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Queue cards grid */}

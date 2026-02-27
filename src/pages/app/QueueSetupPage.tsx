@@ -1,5 +1,11 @@
-import { useState, useRef, useCallback, type ChangeEvent } from "react";
-import { useNavigate, useParams } from "react-router";
+import {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  type ChangeEvent,
+} from "react";
+import { useLocation, useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
   Plus,
@@ -67,9 +73,10 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 // ---------- main component ----------
 export default function QueueSetupPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const isEdit = !!id;
+  const isEdit = !!id && id !== "new";
 
   // basic fields
   const [name, setName] = useState("");
@@ -102,6 +109,19 @@ export default function QueueSetupPage() {
   // submit
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    const prefill = (
+      location.state as {
+        prefill?: { name?: string; key?: string; origin?: string };
+      } | null
+    )?.prefill;
+    if (!prefill) return;
+
+    if (typeof prefill.name === "string") setName(prefill.name);
+    if (typeof prefill.key === "string") setKey(prefill.key);
+    if (typeof prefill.origin === "string") setOrigin(prefill.origin);
+  }, [location.state]);
 
   // ---- key check on blur ----
   const handleKeyBlur = useCallback(async () => {

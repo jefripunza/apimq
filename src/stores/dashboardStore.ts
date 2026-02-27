@@ -3,6 +3,7 @@ import { create } from "zustand";
 export interface QueueItem {
   name: string;
   key: string;
+  enabled: boolean;
   messages: number;
   consumers: number;
   publishRate: number;
@@ -19,6 +20,7 @@ interface DashboardState {
   isLoading: boolean;
   setDashboardData: (data: Partial<DashboardState>) => void;
   setLoading: (loading: boolean) => void;
+  toggleQueueEnabled: (key: string, enabled: boolean) => void;
 }
 
 export const useDashboardStore = create<DashboardState>()((set) => ({
@@ -30,6 +32,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "order.processing",
       key: "order.processing",
+      enabled: true,
       messages: 1_243,
       consumers: 3,
       publishRate: 120,
@@ -39,6 +42,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "email.notifications",
       key: "email.notifications",
+      enabled: true,
       messages: 892,
       consumers: 2,
       publishRate: 85,
@@ -48,6 +52,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "payment.webhook",
       key: "payment.webhook",
+      enabled: true,
       messages: 456,
       consumers: 1,
       publishRate: 45,
@@ -57,6 +62,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "analytics.events",
       key: "analytics.events",
+      enabled: true,
       messages: 12_304,
       consumers: 4,
       publishRate: 340,
@@ -66,6 +72,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "user.registration",
       key: "user.registration",
+      enabled: false,
       messages: 23,
       consumers: 1,
       publishRate: 5,
@@ -75,6 +82,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "inventory.sync",
       key: "inventory.sync",
+      enabled: true,
       messages: 8_901,
       consumers: 0,
       publishRate: 200,
@@ -84,6 +92,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "log.aggregation",
       key: "log.aggregation",
+      enabled: true,
       messages: 24_573,
       consumers: 2,
       publishRate: 452,
@@ -94,4 +103,8 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
   isLoading: false,
   setDashboardData: (data) => set((state) => ({ ...state, ...data })),
   setLoading: (loading) => set({ isLoading: loading }),
+  toggleQueueEnabled: (key, enabled) =>
+    set((state) => ({
+      queues: state.queues.map((q) => (q.key === key ? { ...q, enabled } : q)),
+    })),
 }));
