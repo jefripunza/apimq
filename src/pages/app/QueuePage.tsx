@@ -1,6 +1,10 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router";
-import { useDashboardStore, type QueueItem } from "@/stores/dashboardStore";
+import {
+  useDashboardStore,
+  type QueueErrorItem,
+  type QueueItem,
+} from "@/stores/dashboardStore";
 import { Plus, Activity, ArrowUpRight, FileText, Settings } from "lucide-react";
 import {
   Dialog,
@@ -26,7 +30,13 @@ function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-function QueueCard({ queue }: { queue: QueueItem }) {
+function QueueCard({
+  queue,
+  onOpenErrors,
+}: {
+  queue: QueueItem;
+  onOpenErrors: (queue: QueueItem) => void;
+}) {
   const navigate = useNavigate();
   const toggleQueueEnabled = useDashboardStore((s) => s.toggleQueueEnabled);
   const isError = queue.status === "error";
@@ -100,19 +110,37 @@ function QueueCard({ queue }: { queue: QueueItem }) {
           <span>{queue.deliverRate}</span>
           <span className="text-dark-500 ml-1">done</span>
         </div>
-        <div className="flex items-center gap-1 text-xs font-mono text-neon-red cursor-pointer">
+        <button
+          type="button"
+          onClick={() => onOpenErrors(queue)}
+          className="flex items-center gap-1 text-xs font-mono text-neon-red cursor-pointer"
+        >
           <FileText className="w-3 h-3" />
           <span>{queue.deliverRate}</span>
           <span className="text-dark-500 ml-1 underline">error</span>
-        </div>
+        </button>
       </div>
     </div>
   );
 }
 
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString();
+}
+
 export default function QueuePage() {
   const { queues } = useDashboardStore();
   const navigate = useNavigate();
+  const errorsByQueue = useDashboardStore((s) => s.errorsByQueue);
+  const ackQueueErrors = useDashboardStore((s) => s.ackQueueErrors);
+  const retryQueueErrors = useDashboardStore((s) => s.retryQueueErrors);
+  const ackQueueError = useDashboardStore((s) => s.ackQueueError);
+  const retryQueueError = useDashboardStore((s) => s.retryQueueError);
+
+  const [isErrorsOpen, setIsErrorsOpen] = useState(false);
+  const [errorsQueue, setErrorsQueue] = useState<QueueItem | null>(null);
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newKey, setNewKey] = useState("");
@@ -206,6 +234,10 @@ export default function QueuePage() {
     });
     resetNewQueueForm();
   };
+
+  const currentErrors: QueueErrorItem[] = errorsQueue
+    ? (errorsByQueue[errorsQueue.key] ?? [])
+    : [];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -538,10 +570,130 @@ export default function QueuePage() {
         </Dialog>
       </div>
 
+      {/* Errors dialog */}
+      <Dialog open={isErrorsOpen} onOpenChange={setIsErrorsOpen}>
+        <DialogContent
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          className="max-h-[85vh] overflow-y-auto"
+        >
+          <DialogHeader>
+            <DialogTitle>
+              Errors{errorsQueue ? ` — ${errorsQueue.name}` : ""}
+            </DialogTitle>
+            <DialogDescription>
+              Collected delivery errors. Choose an action to acknowledge or
+              retry.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div
+            className={`mt-4 space-y-3 ${
+              currentErrors.length > 5 ? "max-h-105 overflow-y-auto pr-2" : ""
+            }`}
+          >
+            {currentErrors.length === 0 ? (
+              <div className="text-sm text-dark-300 font-mono bg-dark-900/40 border border-dark-600/30 rounded-xl p-4">
+                No collected errors.
+              </div>
+            ) : (
+              currentErrors.map((err) => (
+                <div
+                  key={err.id}
+                  className="bg-dark-900/40 border border-dark-600/30 rounded-xl p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm text-foreground font-semibold">
+                        {err.message}
+                      </p>
+                      <p className="text-xs text-dark-400 font-mono mt-1">
+                        {formatDate(err.at)}
+                      </p>
+                      {err.detail && (
+                        <p className="text-xs text-dark-300 font-mono mt-2 wrap-break-word">
+                          {err.detail}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <span className="text-[11px] font-mono text-neon-red border border-neon-red/20 bg-neon-red/10 rounded-md px-2 py-0.5">
+                        error
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!errorsQueue) return;
+                            ackQueueError(errorsQueue.key, err.id);
+                          }}
+                          className="px-3 py-1.5 text-xs font-semibold text-dark-200 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-lg transition-all"
+                        >
+                          Ack
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!errorsQueue) return;
+                            retryQueueError(errorsQueue.key, err.id);
+                          }}
+                          className="px-3 py-1.5 text-xs font-semibold text-white bg-accent-500 hover:bg-accent-600 rounded-lg transition-all hover:shadow-lg hover:shadow-accent-500/25"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <DialogFooter className="pt-4">
+            <button
+              type="button"
+              onClick={() => setIsErrorsOpen(false)}
+              className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              disabled={!errorsQueue || currentErrors.length === 0}
+              onClick={() => {
+                if (!errorsQueue) return;
+                ackQueueErrors(errorsQueue.key);
+              }}
+              className="px-5 py-2.5 text-sm font-semibold text-dark-200 hover:text-foreground bg-dark-700/40 hover:bg-dark-700/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
+            >
+              Ack All
+            </button>
+            <button
+              type="button"
+              disabled={!errorsQueue || currentErrors.length === 0}
+              onClick={() => {
+                if (!errorsQueue) return;
+                retryQueueErrors(errorsQueue.key);
+              }}
+              className="px-5 py-2.5 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
+            >
+              Retry All
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Queue cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {queues.map((queue) => (
-          <QueueCard key={queue.name} queue={queue} />
+          <QueueCard
+            key={queue.name}
+            queue={queue}
+            onOpenErrors={(q) => {
+              setErrorsQueue(q);
+              setIsErrorsOpen(true);
+            }}
+          />
         ))}
       </div>
     </div>
