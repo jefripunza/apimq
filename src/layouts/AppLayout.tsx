@@ -16,6 +16,7 @@ import {
   FileText,
   Group,
 } from "lucide-react";
+import Loading from "@/components/Loading";
 
 const navItems = [
   {
@@ -52,7 +53,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { isAuthenticated, validateToken, logout } = useAuthStore();
+  const { isAuthenticated, isLoading, validateToken, logout } = useAuthStore();
   const {
     isCollapsed,
     isMobileOpen,
@@ -116,6 +117,10 @@ export default function AppLayout() {
 
   const effectiveCollapsed = isDesktop ? isCollapsed : false;
   const sidebarWidth = effectiveCollapsed ? "w-[72px]" : "w-65";
+
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
     <div className="h-screen overflow-hidden bg-dark-900 flex">

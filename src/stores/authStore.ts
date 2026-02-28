@@ -4,6 +4,7 @@ import type { AxiosError } from "axios";
 
 interface AuthState {
   token: string | null;
+  isLoading: boolean;
   isAuthenticated: boolean;
   login: (
     password: string,
@@ -15,6 +16,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
   token: localStorage.getItem("token") || null,
+  isLoading: true,
   isAuthenticated: false,
   login: async (password) => {
     try {
@@ -46,19 +48,19 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   validateToken: async () => {
     const { token, isAuthenticated } = get();
     if (!token) {
-      set({ isAuthenticated: false });
+      set({ isAuthenticated: false, isLoading: false });
       return false;
     }
     if (isAuthenticated) return true;
     try {
       await authService.validate();
-      set({ isAuthenticated: true });
+      set({ isAuthenticated: true, isLoading: false });
       return true;
     } catch (err) {
       const error = err as AxiosError;
       if (error.response?.status === 401) {
         // localStorage.removeItem("token");
-        set({ isAuthenticated: false, token: null });
+        set({ isAuthenticated: false, token: null, isLoading: false });
       }
       return false;
     }

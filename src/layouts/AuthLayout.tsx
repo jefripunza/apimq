@@ -2,11 +2,12 @@ import { Outlet, useNavigate } from "react-router";
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { useThemeStore } from "@/stores/themeStore";
+import Loading from "@/components/Loading";
 
 export default function AuthLayout() {
   const navigate = useNavigate();
 
-  const { isAuthenticated, validateToken } = useAuthStore();
+  const { isAuthenticated, isLoading, validateToken } = useAuthStore();
   const { isDarkMode } = useThemeStore();
 
   useEffect(() => {
@@ -33,6 +34,10 @@ export default function AuthLayout() {
       root.setAttribute("data-theme", "light");
     }
   }, [isDarkMode]);
+
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-dark-900 overflow-hidden">
