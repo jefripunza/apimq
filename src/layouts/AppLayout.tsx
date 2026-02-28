@@ -49,9 +49,10 @@ const navItems = [
 ];
 
 export default function AppLayout() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const validateToken = useAuthStore((s) => s.validateToken);
-  const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const { isAuthenticated, validateToken, logout } = useAuthStore();
   const {
     isCollapsed,
     isMobileOpen,
@@ -60,8 +61,7 @@ export default function AppLayout() {
     setMobileOpen,
   } = useSidebarStore();
   const { isDarkMode, toggleTheme } = useThemeStore();
-  const navigate = useNavigate();
-  const location = useLocation();
+
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {

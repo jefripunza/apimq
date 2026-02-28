@@ -4,10 +4,10 @@ import { useAuthStore } from "@/stores/authStore";
 import { useThemeStore } from "@/stores/themeStore";
 
 export default function AuthLayout() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const validateToken = useAuthStore((s) => s.validateToken);
-  const isDarkMode = useThemeStore((s) => s.isDarkMode);
   const navigate = useNavigate();
+
+  const { isAuthenticated, validateToken } = useAuthStore();
+  const { isDarkMode } = useThemeStore();
 
   useEffect(() => {
     const checkAuth = async () => {

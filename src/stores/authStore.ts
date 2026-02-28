@@ -1,39 +1,65 @@
 import { create } from "zustand";
+import { authService } from "@/services/auth.service";
+import type { AxiosError } from "axios";
 
 interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
-  login: (token: string) => void;
-  logout: () => void;
+  login: (
+    password: string,
+  ) => Promise<{ success: boolean; message: string | null }>;
+  logout: () => Promise<{ success: boolean; message: string | null }>;
   validateToken: () => Promise<boolean>;
   setAuthenticated: (value: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
-  token: null,
+  token: localStorage.getItem("token") || null,
   isAuthenticated: false,
-  login: (token) => {
-    localStorage.setItem("token", token);
-    return set({ token, isAuthenticated: true });
+  login: async (password) => {
+    try {
+      const response = await authService.login(password);
+      if (response.data?.token) {
+        const token = response.data.token;
+        localStorage.setItem("token", token);
+        set({ token, isAuthenticated: true });
+        return { success: true, message: null };
+      } else {
+        return { success: false, message: response.message || "Login failed" };
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+      return { success: false, message: "Login failed" };
+    }
   },
-  logout: () => {
-    localStorage.removeItem("token");
-    return set({ token: null, isAuthenticated: false });
+  logout: async () => {
+    try {
+      await authService.logout();
+      localStorage.removeItem("token");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+    set({ token: null, isAuthenticated: false });
+    return { success: true, message: null };
   },
   setAuthenticated: (value) => set({ isAuthenticated: value }),
   validateToken: async () => {
-    const { token } = get();
+    const { token, isAuthenticated } = get();
     if (!token) {
       set({ isAuthenticated: false });
       return false;
     }
+    if (isAuthenticated) return true;
     try {
-      const { authService } = await import("@/services/auth.service");
       await authService.validate();
       set({ isAuthenticated: true });
       return true;
-    } catch {
-      set({ isAuthenticated: false, token: null });
+    } catch (err) {
+      const error = err as AxiosError;
+      if (error.response?.status === 401) {
+        // localStorage.removeItem("token");
+        set({ isAuthenticated: false, token: null });
+      }
       return false;
     }
   },

@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/authStore";
-import { authService } from "@/services/auth.service";
 import { Eye, EyeOff, Terminal, Zap, Lock } from "lucide-react";
 
 export default function LoginPage() {
@@ -18,9 +17,8 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await authService.login(password);
-      if (response.data?.token) {
-        login(response.data.token);
+      const response = await login(password);
+      if (response.success) {
         navigate("/app/dashboard", { replace: true });
       } else {
         setError(response.message || "Login failed");
