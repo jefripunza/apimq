@@ -5,8 +5,19 @@ import { useThemeStore } from "@/stores/themeStore";
 
 export default function AuthLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const validateToken = useAuthStore((s) => s.validateToken);
   const isDarkMode = useThemeStore((s) => s.isDarkMode);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const valid = await validateToken();
+      if (valid) {
+        navigate("/app/dashboard", { replace: true });
+      }
+    };
+    checkAuth();
+  }, [validateToken, navigate]);
 
   useEffect(() => {
     if (isAuthenticated) {

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func GetDatabaseEnv() (string, string, string, string, string, string) {
+func GetDatabase() (string, string, string, string, string, string) {
 	provider := strings.ToLower(os.Getenv("DATABASE_PROVIDER"))
 	host := os.Getenv("DATABASE_HOST")
 	port := os.Getenv("DATABASE_PORT")

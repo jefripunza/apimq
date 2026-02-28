@@ -32,7 +32,7 @@ func init() {
 }
 
 func keepDBAlive() {
-	provider, _, _, _, _, _ := environment.GetDatabaseEnv()
+	provider, _, _, _, _, _ := environment.GetDatabase()
 	provider = strings.ToLower(provider)
 	if provider == "" || provider == "sqlite" {
 		return
@@ -86,7 +86,7 @@ func keepDBAlive() {
 }
 
 func OpenDB() (*gorm.DB, error) {
-	provider, host, port, user, pass, dbName := environment.GetDatabaseEnv()
+	provider, host, port, user, pass, dbName := environment.GetDatabase()
 	if provider == "" {
 		provider = "sqlite"
 	}

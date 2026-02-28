@@ -12,9 +12,13 @@ const satellite = axios.create({
 // request interceptor
 satellite.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {
+      // ignore parse errors
     }
     return config;
   },

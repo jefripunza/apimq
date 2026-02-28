@@ -13,5 +13,5 @@ func Models() []interface{} {
 }
 
 func SeedAll(db *gorm.DB) {
-	setting.SeedSettings(db)
+	setting.Seed(db)
 }

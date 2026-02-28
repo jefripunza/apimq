@@ -4,11 +4,9 @@ import (
 	"apimq/dto"
 	"apimq/variable"
 	"fmt"
-	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 func All(c *fiber.Ctx) error {
@@ -104,24 +102,4 @@ func Set(c *fiber.Ctx) error {
 	}
 
 	return dto.OK(c, "Setting updated successfully!", nil)
-}
-
-func SeedSettings(db *gorm.DB) {
-	settings := map[string]string{
-		"password": "admin",
-	}
-
-	inserts := []string{}
-	exists := []string{}
-	for key, value := range settings {
-		var s Setting
-		if err := db.Where("key = ?", key).First(&s).Error; err != nil {
-			db.Create(&Setting{Key: key, Value: value})
-			inserts = append(inserts, key)
-		} else {
-			exists = append(exists, key)
-		}
-	}
-	log.Printf("✅ Inserted %d settings!", len(inserts))
-	log.Printf("👌 Already exists %d settings!", len(exists))
 }

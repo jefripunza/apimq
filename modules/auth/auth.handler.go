@@ -3,10 +3,10 @@ package auth
 import (
 	"crypto/md5"
 	"fmt"
-	"os"
 	"time"
 
 	"apimq/dto"
+	"apimq/environment"
 	"apimq/modules/setting"
 	"apimq/variable"
 
@@ -14,21 +14,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func getJWTSecret() []byte {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "apimq-secret-key"
-	}
-	return []byte(secret)
-}
-
 func GenerateToken() (string, error) {
 	claims := jwt.MapClaims{
 		"exp": time.Now().Add(24 * time.Hour).Unix(),
 		"iat": time.Now().Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(getJWTSecret())
+	return token.SignedString(environment.GetJWTSecret())
 }
 
 func ParseToken(tokenString string) (jwt.MapClaims, error) {
@@ -36,7 +28,7 @@ func ParseToken(tokenString string) (jwt.MapClaims, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return getJWTSecret(), nil
+		return environment.GetJWTSecret(), nil
 	})
 	if err != nil {
 		return nil, err

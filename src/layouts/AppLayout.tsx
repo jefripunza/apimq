@@ -50,6 +50,7 @@ const navItems = [
 
 export default function AppLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const validateToken = useAuthStore((s) => s.validateToken);
   const logout = useAuthStore((s) => s.logout);
   const {
     isCollapsed,
@@ -62,6 +63,16 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const valid = await validateToken();
+      if (!valid) {
+        navigate("/", { replace: true });
+      }
+    };
+    checkAuth();
+  }, [validateToken, navigate]);
 
   useEffect(() => {
     if (!isAuthenticated) {

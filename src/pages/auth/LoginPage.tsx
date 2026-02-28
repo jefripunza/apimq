@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/authStore";
+import { authService } from "@/services/auth.service";
 import { Eye, EyeOff, Terminal, Zap, Lock } from "lucide-react";
 
 export default function LoginPage() {
@@ -17,16 +18,19 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      if (password === "admin") {
-        login("mock-jwt-token", { username: "admin", role: "admin" });
+      const response = await authService.login(password);
+      if (response.data?.token) {
+        login(response.data.token);
         navigate("/app/dashboard", { replace: true });
       } else {
-        setError("Invalid credentials. Try admin / admin");
+        setError(response.message || "Login failed");
       }
-    } catch {
-      setError("Connection failed. Check your server.");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Connection failed. Check your server.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
