@@ -11,6 +11,7 @@ import {
   Send,
 } from "lucide-react";
 import { useQueueStore } from "@/stores/queueStore";
+import { useApiKeyStore } from "@/stores/apikeyStore";
 import type { Queue } from "@/types/queue";
 import {
   Dialog,
@@ -36,6 +37,7 @@ export default function QueueCard({
     fetchAll,
     sendTestMessage,
   } = useQueueStore();
+  const { keys: apiKeys, fetchAll: fetchApiKeys } = useApiKeyStore();
   const isError = queue.status === "error";
 
   const [isCodeOpen, setIsCodeOpen] = useState(false);
@@ -44,6 +46,7 @@ export default function QueueCard({
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState(false);
   const [sendCount, setSendCount] = useState("1");
+  const [selectedApiKey, setSelectedApiKey] = useState<string>("");
 
   const handleSendTest = async () => {
     setSendError("");
@@ -55,7 +58,7 @@ export default function QueueCard({
       jsonBody["key"] = queue.key;
 
       for (let i = 0; i < n; i += 1) {
-        await sendTestMessage(jsonBody);
+        await sendTestMessage(jsonBody, selectedApiKey || undefined);
       }
 
       await fetchAll();
@@ -85,7 +88,9 @@ export default function QueueCard({
       headers: {},
     });
     setSendCount("1");
-  }, [isCodeOpen, queue.id, queue.key]);
+    setSelectedApiKey("");
+    if (isCodeOpen) fetchApiKeys();
+  }, [isCodeOpen, queue.id, queue.key, fetchApiKeys]);
 
   return (
     <div
@@ -145,6 +150,27 @@ export default function QueueCard({
                       required
                     />
                   </div>
+                  {apiKeys.filter((k) => k.is_active).length > 0 && (
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                        API Key
+                      </label>
+                      <select
+                        value={selectedApiKey}
+                        onChange={(e) => setSelectedApiKey(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                      >
+                        <option value="">(no key)</option>
+                        {apiKeys
+                          .filter((k) => k.is_active)
+                          .map((k) => (
+                            <option key={k.id} value={k.key}>
+                              {k.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  )}
                   <JsonEditor
                     value={JSON.stringify(jsonBody, null, 2)}
                     onChange={(value) => setJsonBody(JSON.parse(value))}

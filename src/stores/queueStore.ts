@@ -87,7 +87,10 @@ interface QueueState {
   remove: (id: string) => Promise<boolean>;
   toggleEnabled: (id: string, enabled: boolean) => Promise<boolean>;
   updateQueuePartial: (id: string, partial: Partial<Queue>) => void;
-  sendTestMessage: (json: Record<string, unknown>) => Promise<boolean>;
+  sendTestMessage: (
+    json: Record<string, unknown>,
+    apiKey?: string,
+  ) => Promise<boolean>;
   getFailedMessages: (id: string) => Promise<QueueMessageApi[]>;
   retryMessage: (messageId: string) => Promise<boolean>;
   ackMessage: (messageId: string) => Promise<boolean>;
@@ -249,9 +252,9 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
     }
   },
 
-  sendTestMessage: async (json: Record<string, unknown>) => {
+  sendTestMessage: async (json: Record<string, unknown>, apiKey?: string) => {
     try {
-      await queueService.sendTestMessage(json);
+      await queueService.sendTestMessage(json, apiKey);
       return true;
     } catch (err: unknown) {
       const e = err as AxiosError;

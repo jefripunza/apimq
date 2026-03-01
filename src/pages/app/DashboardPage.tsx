@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   Inbox,
@@ -13,13 +13,28 @@ import LineChart from "@/components/LineChart";
 
 import { useDashboardStore } from "@/stores/dashboardStore";
 import { clamp, randomWalk } from "@/utils/random";
+import { getSocket } from "@/lib/socket";
 
 export default function DashboardPage() {
-  const { stats, queues, fetchStats } = useDashboardStore();
+  const { stats, queues, fetchStats, setStats } = useDashboardStore();
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  // Subscribe to live_data socket room for real-time stats updates
+  const socketRef = useRef(getSocket());
+  useEffect(() => {
+    const socket = socketRef.current;
+    socket.emit("join_live_data");
+    socket.on("live_data", (data: typeof stats) => {
+      setStats(data);
+    });
+    return () => {
+      socket.emit("leave_live_data");
+      socket.off("live_data");
+    };
+  }, [setStats]);
 
   const maxPoints = 60;
 

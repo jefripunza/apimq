@@ -17,6 +17,7 @@ interface DashboardState {
   queues: DashboardQueue[];
   isLoading: boolean;
   fetchStats: () => Promise<void>;
+  setStats: (stats: DashboardStats) => void;
 }
 
 export const useDashboardStore = create<DashboardState>()((set) => ({
@@ -55,4 +56,5 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
       set({ isLoading: false });
     }
   },
+  setStats: (stats) => set({ stats }),
 }));

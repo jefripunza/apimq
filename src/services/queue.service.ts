@@ -91,7 +91,7 @@ export const queueService = {
     );
     return response.data;
   },
-  sendTestMessage: async (json: Record<string, unknown>) => {
+  sendTestMessage: async (json: Record<string, unknown>, apiKey?: string) => {
     const payload = {
       queue_id: json.queue_id as string | undefined,
       key: json.key as string | undefined,
@@ -100,7 +100,12 @@ export const queueService = {
       body: JSON.stringify(json.body),
       headers: json.headers ? JSON.stringify(json.headers) : undefined,
     };
-    const response = await satellite.post<Response<null>>(`/queue`, payload);
+    const config = apiKey ? { headers: { "X-Api-Key": apiKey } } : {};
+    const response = await satellite.post<Response<null>>(
+      `/queue`,
+      payload,
+      config,
+    );
     return response.data;
   },
   getFailedMessages: async (id: string) => {

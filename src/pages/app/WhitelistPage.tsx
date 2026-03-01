@@ -21,6 +21,7 @@ export default function WhitelistPage() {
   const [newValue, setNewValue] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAll();
@@ -52,9 +53,13 @@ export default function WhitelistPage() {
     }
   };
 
-  const handleRemove = async (id: string) => {
-    await removeEntry(id);
+  const handleRemove = async () => {
+    if (!deleteTarget) return;
+    await removeEntry(deleteTarget);
+    setDeleteTarget(null);
   };
+
+  const deleteEntry = entries.find((e) => e.id === deleteTarget);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -208,7 +213,7 @@ export default function WhitelistPage() {
                 </p>
               </div>
               <button
-                onClick={() => handleRemove(entry.id)}
+                onClick={() => setDeleteTarget(entry.id)}
                 className="p-2 rounded-lg text-dark-400 hover:text-neon-red hover:bg-neon-red/5 transition-all shrink-0"
                 title="Remove"
               >
@@ -218,6 +223,39 @@ export default function WhitelistPage() {
           ))
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+      >
+        <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Remove whitelist entry?</DialogTitle>
+            <DialogDescription>
+              {deleteEntry
+                ? `This will remove "${deleteEntry.value}" (${deleteEntry.type}) from the whitelist. This action cannot be undone.`
+                : "This action cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="px-6 py-2.5 bg-neon-red/80 hover:bg-neon-red disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-all"
+            >
+              Remove
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -18,6 +18,7 @@ import LogPage from "@/pages/app/LogPage";
 import WhitelistPage from "@/pages/app/WhitelistPage";
 import ApiKeyPage from "@/pages/app/ApiKeyPage";
 import SettingsPage from "@/pages/app/SettingPage";
+import DocPage from "@/pages/DocPage";
 
 // Errors
 import ErrorBoundaryPage from "@/pages/error/ErrorBoundaryPage";
@@ -74,6 +75,10 @@ const router = createBrowserRouter([
       },
     ],
     errorElement: <ErrorBoundaryPage />,
+  },
+  {
+    path: "doc",
+    element: <DocPage />,
   },
   {
     path: "*",

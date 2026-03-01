@@ -30,6 +30,7 @@ export default function ApiKeyPage() {
   const [newName, setNewName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAll();
@@ -62,9 +63,13 @@ export default function ApiKeyPage() {
     await toggleKey(id, !current);
   };
 
-  const handleRemove = async (id: string) => {
-    await removeKey(id);
+  const handleRemove = async () => {
+    if (!deleteTarget) return;
+    await removeKey(deleteTarget);
+    setDeleteTarget(null);
   };
+
+  const deleteKey = keys.find((k) => k.id === deleteTarget);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -212,7 +217,7 @@ export default function ApiKeyPage() {
                     )}
                   </button>
                   <button
-                    onClick={() => handleRemove(apiKey.id)}
+                    onClick={() => setDeleteTarget(apiKey.id)}
                     className="p-2 rounded-lg text-dark-400 hover:text-neon-red hover:bg-neon-red/5 transition-all"
                     title="Delete"
                   >
@@ -224,6 +229,39 @@ export default function ApiKeyPage() {
           ))
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+      >
+        <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Delete API key?</DialogTitle>
+            <DialogDescription>
+              {deleteKey
+                ? `This will permanently delete "${deleteKey.name}". Any services using this key will lose access immediately.`
+                : "This action cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="px-6 py-2.5 bg-neon-red/80 hover:bg-neon-red text-white text-sm font-semibold rounded-xl transition-all"
+            >
+              Delete
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
