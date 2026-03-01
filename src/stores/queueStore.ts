@@ -91,6 +91,10 @@ interface QueueState {
   getFailedMessages: (id: string) => Promise<QueueMessageApi[]>;
   retryMessage: (messageId: string) => Promise<boolean>;
   ackMessage: (messageId: string) => Promise<boolean>;
+  updateMessage: (
+    messageId: string,
+    payload: { method: string; query?: string; body: string; headers?: string },
+  ) => Promise<boolean>;
 }
 
 export const useQueueStore = create<QueueState>()((set, get) => ({
@@ -304,6 +308,23 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
       const msg =
         (e.response?.data as { message?: string } | undefined)?.message ??
         "Failed to acknowledge message";
+      set({ error: msg });
+      return false;
+    }
+  },
+
+  updateMessage: async (messageId, payload) => {
+    try {
+      const res = await queueService.updateMessage(messageId, payload);
+      if (res.status === 200) {
+        return true;
+      }
+      return false;
+    } catch (err: unknown) {
+      const e = err as AxiosError;
+      const msg =
+        (e.response?.data as { message?: string } | undefined)?.message ??
+        "Failed to update message";
       set({ error: msg });
       return false;
     }

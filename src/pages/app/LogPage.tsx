@@ -69,6 +69,7 @@ export default function LogsPage() {
     setNextCursor(null);
     setHasMore(true);
     fetchLogs(undefined, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   // Socket.io for real-time log updates
@@ -144,19 +145,6 @@ export default function LogsPage() {
             Delivery activity and message processing history
           </p>
         </div>
-        <button
-          onClick={() => {
-            setLogs([]);
-            setNextCursor(null);
-            setHasMore(true);
-            fetchLogs(undefined, true);
-          }}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all disabled:opacity-50"
-        >
-          <Loader2 className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
       </div>
 
       {/* Filters */}
@@ -232,7 +220,7 @@ export default function LogsPage() {
                     {formatDate(log.created_at)}
                   </p>
                   <div className="flex items-center gap-1 text-xs text-dark-300 font-mono mt-1 justify-end">
-                    {formatDuration(log.duration)}ms
+                    {formatDuration(log.duration)}
                   </div>
                 </div>
               </div>

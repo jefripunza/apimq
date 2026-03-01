@@ -23,7 +23,7 @@ import { formatDate } from "@/utils/datetime";
 import QueueCard from "@/components/QueueCard";
 import type { HeaderEntry, KeyStatus, Queue } from "@/types/queue";
 import type { QueueMessageApi } from "@/services/queue.service";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Edit } from "lucide-react";
 
 export default function QueuePage() {
   const {
@@ -34,12 +34,25 @@ export default function QueuePage() {
     getFailedMessages,
     retryMessage,
     ackMessage,
+    updateMessage,
   } = useQueueStore();
 
   // Failed messages state
   const [failedMessages, setFailedMessages] = useState<QueueMessageApi[]>([]);
   const [isLoadingErrors, setIsLoadingErrors] = useState(false);
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+
+  // Edit message state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingMessage, setEditingMessage] = useState<QueueMessageApi | null>(
+    null,
+  );
+  const [editMethod, setEditMethod] = useState("");
+  const [editQuery, setEditQuery] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [editHeaders, setEditHeaders] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editError, setEditError] = useState("");
 
   // Socket.io integration for real-time queue updates
   const updateQueueInStore = useQueueStore((s) => s.updateQueuePartial);
@@ -267,6 +280,57 @@ export default function QueuePage() {
     const ids = failedMessages.map((m) => m.id);
     for (const id of ids) {
       await handleAckMessage(id);
+    }
+  };
+
+  const handleOpenEdit = (msg: QueueMessageApi) => {
+    setEditingMessage(msg);
+    setEditMethod(msg.method || "POST");
+    setEditQuery(msg.query || "");
+    setEditBody(msg.body || "");
+    setEditHeaders(msg.headers || "");
+    setEditError("");
+    setIsEditOpen(true);
+  };
+
+  const handleCloseEdit = () => {
+    setIsEditOpen(false);
+    setEditingMessage(null);
+    setEditMethod("");
+    setEditQuery("");
+    setEditBody("");
+    setEditHeaders("");
+    setEditError("");
+  };
+
+  const handleSubmitEdit = async () => {
+    if (!editingMessage) return;
+    setEditError("");
+    setIsUpdating(true);
+    try {
+      const payload = {
+        method: editMethod,
+        query: editQuery || undefined,
+        body: editBody,
+        headers: editHeaders || undefined,
+      };
+      const success = await updateMessage(editingMessage.id, payload);
+      if (success) {
+        // Refresh failed messages list
+        if (errorsQueue) {
+          await fetchFailedMessages(errorsQueue.id);
+        }
+        handleCloseEdit();
+      } else {
+        setEditError("Failed to update message");
+      }
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? "Failed to update message";
+      setEditError(msg);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -728,6 +792,14 @@ export default function QueuePage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
+                        onClick={() => handleOpenEdit(msg)}
+                        className="px-3 py-1.5 text-xs font-semibold text-dark-200 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-lg transition-all flex items-center gap-1"
+                      >
+                        <Edit className="w-3 h-3" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleAckMessage(msg.id)}
                         className="px-3 py-1.5 text-xs font-semibold text-dark-200 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-lg transition-all"
                       >
@@ -795,6 +867,98 @@ export default function QueuePage() {
           />
         ))}
       </div>
+
+      {/* Edit Message Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Failed Message</DialogTitle>
+            <DialogDescription>
+              Update the message details and retry delivery.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                Method
+              </label>
+              <input
+                type="text"
+                value={editMethod}
+                onChange={(e) => setEditMethod(e.target.value)}
+                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                placeholder="POST"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                Query (JSON)
+              </label>
+              <textarea
+                value={editQuery}
+                onChange={(e) => setEditQuery(e.target.value)}
+                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                placeholder='{"key": "value"}'
+                rows={3}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                Body (JSON)
+              </label>
+              <textarea
+                value={editBody}
+                onChange={(e) => setEditBody(e.target.value)}
+                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                placeholder='{"data": "value"}'
+                rows={5}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                Headers (JSON)
+              </label>
+              <textarea
+                value={editHeaders}
+                onChange={(e) => setEditHeaders(e.target.value)}
+                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                placeholder='{"Content-Type": "application/json"}'
+                rows={3}
+              />
+            </div>
+            {editError && (
+              <p className="text-xs text-neon-red font-mono">{editError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={handleCloseEdit}
+              disabled={isUpdating}
+              className="px-4 py-2 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmitEdit}
+              disabled={isUpdating || !editMethod || !editBody}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Message"
+              )}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
