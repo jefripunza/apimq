@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Inbox, Users, Zap } from "lucide-react";
+import {
+  Activity,
+  Inbox,
+  Clock,
+  AlertTriangle,
+  Timer,
+  CheckCircle2,
+} from "lucide-react";
 
 import StatCard from "@/components/StatCard";
 import LineChart from "@/components/LineChart";
@@ -8,13 +15,11 @@ import { useDashboardStore } from "@/stores/dashboardStore";
 import { clamp, randomWalk } from "@/utils/random";
 
 export default function DashboardPage() {
-  const {
-    totalQueues,
-    totalMessages,
-    totalConsumers,
-    messagesPerSecond,
-    queues,
-  } = useDashboardStore();
+  const { stats, queues, fetchStats } = useDashboardStore();
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const maxPoints = 60;
 
@@ -81,39 +86,47 @@ export default function DashboardPage() {
       <div>
         <h2 className="text-xl font-bold text-foreground">Dashboard</h2>
         <p className="text-sm text-dark-300 mt-1">
-          Real-time overview of your message queues and consumers
+          Real-time overview of your message queues
         </p>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         <StatCard
           label="Total Queues"
-          value={totalQueues}
+          value={stats.total_queues}
           icon={Inbox}
           color="indigo"
-          trend={{ value: "+2", up: true }}
         />
         <StatCard
           label="Total Messages"
-          value={totalMessages}
+          value={stats.total_messages}
           icon={Activity}
           color="green"
-          trend={{ value: "+12.5%", up: true }}
         />
         <StatCard
-          label="Active Consumers"
-          value={totalConsumers}
-          icon={Users}
+          label="Completed"
+          value={stats.total_completed}
+          icon={CheckCircle2}
           color="cyan"
-          trend={{ value: "-1", up: false }}
         />
         <StatCard
-          label="Messages / sec"
-          value={messagesPerSecond}
-          icon={Zap}
+          label="Pending"
+          value={stats.total_pending}
+          icon={Clock}
           color="yellow"
-          trend={{ value: "+8.3%", up: true }}
+        />
+        <StatCard
+          label="Timing"
+          value={stats.total_timing}
+          icon={Timer}
+          color="indigo"
+        />
+        <StatCard
+          label="Failed"
+          value={stats.total_failed}
+          icon={AlertTriangle}
+          color="red"
         />
       </div>
 
@@ -124,7 +137,7 @@ export default function DashboardPage() {
             Queue Throughput
           </h3>
           <p className="text-xs text-dark-400 mt-0.5 font-mono">
-            Live random chart (updates every second) - 1 line per queue
+            Live chart (updates every second) - 1 line per queue
           </p>
         </div>
         <div className="p-4">

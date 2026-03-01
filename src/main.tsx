@@ -16,6 +16,7 @@ import QueuePage from "@/pages/app/QueuePage";
 import QueueSetupPage from "@/pages/app/QueueSetupPage";
 import LogPage from "@/pages/app/LogPage";
 import WhitelistPage from "@/pages/app/WhitelistPage";
+import ApiKeyPage from "@/pages/app/ApiKeyPage";
 import SettingsPage from "@/pages/app/SettingPage";
 
 // Errors
@@ -60,6 +61,10 @@ const router = createBrowserRouter([
           {
             path: "whitelist",
             element: <WhitelistPage />,
+          },
+          {
+            path: "apikey",
+            element: <ApiKeyPage />,
           },
           {
             path: "setting",

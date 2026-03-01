@@ -7,6 +7,12 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { formatDate } from "@/utils/datetime";
 import { formatDuration } from "@/utils/format";
@@ -35,6 +41,7 @@ export default function LogsPage() {
   const [hasMore, setHasMore] = useState(true);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
 
   // Fetch logs
   const fetchLogs = useCallback(
@@ -188,7 +195,8 @@ export default function LogsPage() {
           filtered.map((log) => (
             <div
               key={log.id}
-              className="bg-dark-800/60 border border-dark-600/40 rounded-xl p-4 hover:border-dark-500/50 transition-all"
+              onClick={() => setSelectedLog(log)}
+              className="bg-dark-800/60 border border-dark-600/40 rounded-xl p-4 hover:border-dark-500/50 transition-all cursor-pointer"
             >
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 shrink-0">{statusIcon[log.status]}</div>
@@ -241,6 +249,90 @@ export default function LogsPage() {
           </div>
         )}
       </div>
+      {/* Log Detail Dialog */}
+      <Dialog
+        open={!!selectedLog}
+        onOpenChange={(open) => !open && setSelectedLog(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log Detail</DialogTitle>
+          </DialogHeader>
+          {selectedLog && (
+            <div className="space-y-4 mt-2">
+              {/* Status & Queue */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="shrink-0">{statusIcon[selectedLog.status]}</div>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[11px] font-mono ${statusBadge[selectedLog.status]}`}
+                >
+                  {selectedLog.status}
+                </span>
+                <span className="text-sm font-mono font-semibold text-accent-400">
+                  {selectedLog.queue_name}
+                </span>
+                <span className="text-xs text-dark-400 font-mono">
+                  ({selectedLog.queue_key})
+                </span>
+              </div>
+
+              {/* Detail fields */}
+              <div className="space-y-2.5 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-dark-400 font-mono">Log ID</span>
+                  <span className="text-foreground font-mono text-xs break-all text-right max-w-[60%]">
+                    {selectedLog.id}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dark-400 font-mono">Queue ID</span>
+                  <span className="text-foreground font-mono text-xs break-all text-right max-w-[60%]">
+                    {selectedLog.queue_id}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dark-400 font-mono">Message ID</span>
+                  <span className="text-foreground font-mono text-xs break-all text-right max-w-[60%]">
+                    {selectedLog.message_id}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dark-400 font-mono">Method</span>
+                  <span className="text-foreground font-mono text-xs">
+                    {selectedLog.method}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dark-400 font-mono">Duration</span>
+                  <span className="text-foreground font-mono text-xs">
+                    {formatDuration(selectedLog.duration)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dark-400 font-mono">Created At</span>
+                  <span className="text-foreground font-mono text-xs">
+                    {formatDate(selectedLog.created_at)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Error message */}
+              {selectedLog.error_message && (
+                <div className="space-y-1">
+                  <p className="text-xs text-dark-400 font-mono">
+                    Error Message
+                  </p>
+                  <div className="bg-neon-red/5 border border-neon-red/20 rounded-lg p-3">
+                    <p className="text-xs text-neon-red font-mono break-all whitespace-pre-wrap">
+                      {selectedLog.error_message}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

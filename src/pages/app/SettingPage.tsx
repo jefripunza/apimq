@@ -156,6 +156,38 @@ export default function SettingPage() {
           </button>
         </div>
       </form>
+
+      {/* Developer Credit */}
+      <div className="bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-3">
+        <SectionTitle>About</SectionTitle>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-accent-500/20 border border-accent-500/30 flex items-center justify-center text-accent-400 font-bold text-lg shrink-0">
+            MQ
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">ApiMQ</h3>
+            <p className="text-xs text-dark-300 font-mono mt-0.5">
+              Lightweight API Message Queue
+            </p>
+          </div>
+        </div>
+        <div className="border-t border-dark-600/40 pt-3 space-y-1.5">
+          <p className="text-xs text-dark-400 font-mono">
+            Developed by{" "}
+            <a
+              href="https://github.com/jefripunza"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-400 hover:text-accent-300 transition-colors underline underline-offset-2"
+            >
+              Jefri Punza
+            </a>
+          </p>
+          <p className="text-xs text-dark-400 font-mono">
+            Open source &middot; Built with Go + React
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

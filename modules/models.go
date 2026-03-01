@@ -1,8 +1,10 @@
 package modules
 
 import (
+	"apimq/modules/apikey"
 	"apimq/modules/queue"
 	"apimq/modules/setting"
+	"apimq/modules/whitelist"
 
 	"gorm.io/gorm"
 )
@@ -13,6 +15,8 @@ func Models() []interface{} {
 		&queue.Queue{},
 		&queue.QueueMessage{},
 		&queue.QueueLog{},
+		&whitelist.Whitelist{},
+		&apikey.ApiKey{},
 	}
 }
 

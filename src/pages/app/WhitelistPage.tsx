@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Trash2, Shield, Globe, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Trash2, Shield, Globe, Search, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,18 +9,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { uid } from "@/utils/random";
-import type { WhitelistEntry } from "@/types/whitelist";
-import { initialEntries } from "@/mock";
 import { formatDate } from "@/utils/datetime";
+import { useWhitelistStore } from "@/stores/whitelistStore";
 
 export default function WhitelistPage() {
-  const [entries, setEntries] = useState<WhitelistEntry[]>(initialEntries);
+  const { entries, isLoading, fetchAll, addEntry, removeEntry } =
+    useWhitelistStore();
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newType, setNewType] = useState<"ip" | "domain">("ip");
   const [newValue, setNewValue] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   const filtered = entries.filter((e) => {
     if (!search) return true;
@@ -31,26 +35,25 @@ export default function WhitelistPage() {
     );
   });
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEntries((prev) => [
-      {
-        id: uid(),
-        type: newType,
-        value: newValue.trim(),
-        label: newLabel.trim() || undefined,
-        createdAt: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
-    setNewValue("");
-    setNewLabel("");
-    setNewType("ip");
-    setIsAddOpen(false);
+    setIsSaving(true);
+    const ok = await addEntry({
+      type: newType,
+      value: newValue.trim(),
+      label: newLabel.trim() || undefined,
+    });
+    setIsSaving(false);
+    if (ok) {
+      setNewValue("");
+      setNewLabel("");
+      setNewType("ip");
+      setIsAddOpen(false);
+    }
   };
 
-  const handleRemove = (id: string) => {
-    setEntries((prev) => prev.filter((e) => e.id !== id));
+  const handleRemove = async (id: string) => {
+    await removeEntry(id);
   };
 
   return (
@@ -133,9 +136,10 @@ export default function WhitelistPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
+                  disabled={isSaving}
+                  className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
                 >
-                  Add
+                  {isSaving ? "Adding..." : "Add"}
                 </button>
               </DialogFooter>
             </form>
@@ -156,9 +160,15 @@ export default function WhitelistPage() {
 
       {/* Entries list */}
       <div className="space-y-2">
-        {filtered.length === 0 ? (
+        {isLoading && entries.length === 0 ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-dark-400" />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-sm text-dark-300 font-mono bg-dark-800/40 border border-dark-600/30 rounded-xl p-6 text-center">
-            No whitelist entries found.
+            {entries.length === 0
+              ? "No whitelist entries. All IPs/domains are allowed."
+              : "No matching entries found."}
           </div>
         ) : (
           filtered.map((entry) => (
@@ -194,7 +204,7 @@ export default function WhitelistPage() {
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-xs text-dark-400 font-mono">
-                  {formatDate(entry.createdAt)}
+                  {formatDate(entry.created_at)}
                 </p>
               </div>
               <button
