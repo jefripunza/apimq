@@ -86,6 +86,7 @@ interface QueueState {
   update: (key: string, payload: UpdateQueuePayload) => Promise<boolean>;
   remove: (key: string) => Promise<boolean>;
   toggleEnabled: (key: string, enabled: boolean) => Promise<boolean>;
+  updateQueuePartial: (id: string, partial: Partial<Queue>) => void;
   sendTestMessage: (json: Record<string, unknown>) => Promise<boolean>;
   getFailedMessages: (key: string) => Promise<QueueMessageApi[]>;
   retryMessage: (messageId: string) => Promise<boolean>;
@@ -302,5 +303,11 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
       set({ error: msg });
       return false;
     }
+  },
+
+  updateQueuePartial: (id: string, partial: Partial<Queue>) => {
+    set({
+      items: get().items.map((q) => (q.id === id ? { ...q, ...partial } : q)),
+    });
   },
 }));

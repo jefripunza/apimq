@@ -12,6 +12,7 @@ func Models() []interface{} {
 		&setting.Setting{},
 		&queue.Queue{},
 		&queue.QueueMessage{},
+		&queue.QueueLog{},
 	}
 }
 

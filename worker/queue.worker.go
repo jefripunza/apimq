@@ -281,9 +281,12 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 	}
 
 	// mark as processing
+	startTime := time.Now()
 	if err := variable.Db.Model(msg).Update("status", queue.QueueMessageStatusProcessing).Error; err != nil {
 		log.Printf("⚠️  Failed updating status=processing message id=%s err=%v", msg.ID.String(), err)
 	}
+	// Log processing status
+	createLogAndEmit(q, msg, queue.QueueLogStatusProcessing, 0, nil)
 
 	// build URL (merge origin query + message query)
 	origin := strings.TrimSpace(q.Origin)
@@ -295,6 +298,8 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 			"status":        queue.QueueMessageStatusFailed,
 			"error_message": errMsg,
 		})
+		duration := time.Since(startTime).Milliseconds()
+		createLogAndEmit(q, msg, queue.QueueLogStatusFailed, duration, &errMsg)
 		return
 	}
 
@@ -330,6 +335,8 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 			"status":        queue.QueueMessageStatusFailed,
 			"error_message": errMsg,
 		})
+		duration := time.Since(startTime).Milliseconds()
+		createLogAndEmit(q, msg, queue.QueueLogStatusFailed, duration, &errMsg)
 		return
 	}
 	if debug {
@@ -380,6 +387,8 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 			"status":        queue.QueueMessageStatusFailed,
 			"error_message": errMsg,
 		})
+		duration := time.Since(startTime).Milliseconds()
+		createLogAndEmit(q, msg, queue.QueueLogStatusFailed, duration, &errMsg)
 		return
 	}
 	defer resp.Body.Close()
@@ -403,6 +412,8 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		}).Error; err != nil {
 			log.Printf("⚠️  Failed updating status=completed message id=%s err=%v", msg.ID.String(), err)
 		}
+		duration := time.Since(startTime).Milliseconds()
+		createLogAndEmit(q, msg, queue.QueueLogStatusCompleted, duration, nil)
 	} else {
 		// HTTP error
 		// Prefer JSON {message: "..."} if response body is JSON
@@ -426,6 +437,8 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 			"error_message": errMsg,
 			"response":      respStr,
 		})
+		duration := time.Since(startTime).Milliseconds()
+		createLogAndEmit(q, msg, queue.QueueLogStatusFailed, duration, &errMsg)
 	}
 }
 
@@ -436,4 +449,64 @@ func sleepOrCancel(ctx context.Context, d time.Duration) {
 	case <-ctx.Done():
 	case <-time.After(d):
 	}
+}
+
+// createLogAndEmit creates a QueueLog entry and emits socket events
+func createLogAndEmit(q *queue.Queue, msg *queue.QueueMessage, status string, duration int64, errMsg *string) {
+	// Create log entry
+	logEntry := queue.QueueLog{
+		QueueID:      q.ID.String(),
+		QueueKey:     q.Key,
+		QueueName:    q.Name,
+		MessageID:    msg.ID.String(),
+		Status:       status,
+		Method:       msg.Method,
+		Duration:     duration,
+		ErrorMessage: errMsg,
+	}
+	if err := variable.Db.Create(&logEntry).Error; err != nil {
+		log.Printf("⚠️  Failed creating log entry: %v", err)
+	}
+
+	// Emit to update_log room
+	if variable.SocketIO != nil {
+		_ = variable.SocketIO.To("update_log").Emit("update_log", logEntry)
+	}
+
+	// Emit queue stats update to update_queue room
+	emitQueueStats(q)
+}
+
+// emitQueueStats fetches current queue stats and emits to update_queue room
+func emitQueueStats(q *queue.Queue) {
+	if variable.SocketIO == nil {
+		return
+	}
+
+	// Get counts
+	var pendingCount int64
+	var completedCount int64
+	var failedCount int64
+
+	variable.Db.Model(&queue.QueueMessage{}).Where("queue_id = ? AND status = ?", q.ID.String(), queue.QueueMessageStatusPending).Count(&pendingCount)
+	variable.Db.Model(&queue.QueueMessage{}).Where("queue_id = ? AND (status = ? OR (status = ? AND is_ack = true))", q.ID.String(), queue.QueueMessageStatusCompleted, queue.QueueMessageStatusFailed).Count(&completedCount)
+	variable.Db.Model(&queue.QueueMessage{}).Where("queue_id = ? AND status = ? AND is_ack = false", q.ID.String(), queue.QueueMessageStatusFailed).Count(&failedCount)
+
+	statsPayload := map[string]interface{}{
+		"id":              q.ID.String(),
+		"enabled":         q.Enabled,
+		"batch_count":     q.BatchCount,
+		"is_send_now":     q.IsSendNow,
+		"send_later_time": q.SendLaterTime,
+		"is_use_delay":    q.IsUseDelay,
+		"is_random_delay": q.IsRandomDelay,
+		"delay_sec":       q.DelaySec,
+		"delay_start":     q.DelayStart,
+		"delay_end":       q.DelayEnd,
+		"messages":        pendingCount,
+		"completed_count": completedCount,
+		"failed_count":    failedCount,
+	}
+
+	_ = variable.SocketIO.To("update_queue").Emit("update_queue", statsPayload)
 }

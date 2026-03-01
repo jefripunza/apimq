@@ -69,3 +69,31 @@ func (q *QueueMessage) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+// ------------------------------------------------------ //
+
+const (
+	QueueLogStatusProcessing = "processing"
+	QueueLogStatusCompleted  = "completed"
+	QueueLogStatusFailed     = "failed"
+)
+
+type QueueLog struct {
+	ID           uuid.UUID `json:"id" gorm:"type:char(36);primaryKey"`
+	QueueID      string    `json:"queue_id" gorm:"index;not null"`
+	QueueKey     string    `json:"queue_key" gorm:"index;not null"`
+	QueueName    string    `json:"queue_name" gorm:"not null"`
+	MessageID    string    `json:"message_id" gorm:"index;not null"`
+	Status       string    `json:"status" gorm:"index;not null"` // processing, completed, failed
+	Method       string    `json:"method" gorm:"default:POST"`
+	Duration     int64     `json:"duration" gorm:"default:0"` // duration in milliseconds
+	ErrorMessage *string   `json:"error_message,omitempty" gorm:"type:text;default:null"`
+	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime;index"`
+}
+
+func (q *QueueLog) BeforeCreate(tx *gorm.DB) error {
+	if q.ID == uuid.Nil {
+		q.ID = uuid.New()
+	}
+	return nil
+}

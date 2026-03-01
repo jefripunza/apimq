@@ -1,53 +1,137 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Search,
   Filter,
   CheckCircle2,
   XCircle,
   Clock,
-  ArrowUpRight,
-  RefreshCw,
+  Loader2,
 } from "lucide-react";
 
-import { mockLogs } from "@/mock";
 import { formatDate } from "@/utils/datetime";
 import { formatDuration } from "@/utils/format";
-import type { StatusFilter } from "@/types/log";
+import type { StatusFilter, LogEntry } from "@/types/log";
+import { logService } from "@/services/log.service";
+import { getSocket } from "@/lib/socket";
 
 const statusIcon = {
-  success: <CheckCircle2 className="w-3.5 h-3.5 text-neon-green" />,
-  error: <XCircle className="w-3.5 h-3.5 text-neon-red" />,
-  pending: <Clock className="w-3.5 h-3.5 text-neon-yellow" />,
+  completed: <CheckCircle2 className="w-3.5 h-3.5 text-neon-green" />,
+  failed: <XCircle className="w-3.5 h-3.5 text-neon-red" />,
+  processing: <Clock className="w-3.5 h-3.5 text-neon-yellow" />,
 };
 
 const statusBadge = {
-  success: "text-neon-green bg-neon-green/10 border-neon-green/20",
-  error: "text-neon-red bg-neon-red/10 border-neon-red/20",
-  pending: "text-neon-yellow bg-neon-yellow/10 border-neon-yellow/20",
+  completed: "text-neon-green bg-neon-green/10 border-neon-green/20",
+  failed: "text-neon-red bg-neon-red/10 border-neon-red/20",
+  processing: "text-neon-yellow bg-neon-yellow/10 border-neon-yellow/20",
 };
 
 export default function LogsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const filtered = mockLogs.filter((log) => {
-    if (statusFilter !== "all" && log.status !== statusFilter) return false;
+  // Fetch logs
+  const fetchLogs = useCallback(
+    async (cursor?: string, reset = false) => {
+      if (isLoading) return;
+      setIsLoading(true);
+      try {
+        const res = await logService.getLogs({
+          limit: 25,
+          cursor,
+          status: statusFilter,
+        });
+        if (res.data) {
+          setLogs((prev) =>
+            reset ? res.data.logs : [...prev, ...res.data.logs],
+          );
+          setNextCursor(res.data.next_cursor || null);
+          setHasMore(!!res.data.next_cursor);
+        }
+      } catch (error) {
+        console.error("Failed to fetch logs:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [statusFilter, isLoading],
+  );
+
+  // Initial load and filter change
+  useEffect(() => {
+    setLogs([]);
+    setNextCursor(null);
+    setHasMore(true);
+    fetchLogs(undefined, true);
+  }, [statusFilter]);
+
+  // Socket.io for real-time log updates
+  useEffect(() => {
+    const socket = getSocket();
+    socket.emit("join_update_log");
+
+    const handleNewLog = (log: LogEntry) => {
+      // Add new log to the top if it matches current filter
+      if (statusFilter === "all" || log.status === statusFilter) {
+        setLogs((prev) => [log, ...prev]);
+      }
+    };
+
+    socket.on("update_log", handleNewLog);
+
+    return () => {
+      socket.emit("leave_update_log");
+      socket.off("update_log", handleNewLog);
+    };
+  }, [statusFilter]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading && nextCursor) {
+          fetchLogs(nextCursor);
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
+  }, [hasMore, isLoading, nextCursor, fetchLogs]);
+
+  // Filter logs by search
+  const filtered = logs.filter((log) => {
     if (search) {
       const q = search.toLowerCase();
       return (
-        log.queue.toLowerCase().includes(q) ||
-        log.message.toLowerCase().includes(q) ||
-        (log.detail?.toLowerCase().includes(q) ?? false)
+        log.queue_key.toLowerCase().includes(q) ||
+        log.queue_name.toLowerCase().includes(q) ||
+        log.method.toLowerCase().includes(q) ||
+        (log.error_message?.toLowerCase().includes(q) ?? false)
       );
     }
     return true;
   });
 
   const counts = {
-    all: mockLogs.length,
-    success: mockLogs.filter((l) => l.status === "success").length,
-    error: mockLogs.filter((l) => l.status === "error").length,
-    pending: mockLogs.filter((l) => l.status === "pending").length,
+    all: logs.length,
+    completed: logs.filter((l) => l.status === "completed").length,
+    failed: logs.filter((l) => l.status === "failed").length,
+    processing: logs.filter((l) => l.status === "processing").length,
   };
 
   return (
@@ -60,8 +144,17 @@ export default function LogsPage() {
             Delivery activity and message processing history
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all">
-          <RefreshCw className="w-4 h-4" />
+        <button
+          onClick={() => {
+            setLogs([]);
+            setNextCursor(null);
+            setHasMore(true);
+            fetchLogs(undefined, true);
+          }}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all disabled:opacity-50"
+        >
+          <Loader2 className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
           Refresh
         </button>
       </div>
@@ -79,7 +172,7 @@ export default function LogsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-dark-400 shrink-0" />
-          {(["all", "success", "error", "pending"] as StatusFilter[]).map(
+          {(["all", "completed", "failed", "processing"] as StatusFilter[]).map(
             (s) => (
               <button
                 key={s}
@@ -114,33 +207,50 @@ export default function LogsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-mono font-semibold text-accent-400">
-                      {log.queue}
+                      {log.queue_name}
+                    </span>
+                    <span className="text-xs text-dark-400 font-mono">
+                      ({log.queue_key})
                     </span>
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[11px] font-mono ${statusBadge[log.status]}`}
                     >
                       {log.status}
                     </span>
+                    <span className="text-xs text-dark-400 font-mono">
+                      {log.method}
+                    </span>
                   </div>
-                  <p className="text-sm text-foreground mt-1">{log.message}</p>
-                  {log.detail && (
-                    <p className="text-xs text-dark-300 font-mono mt-1">
-                      {log.detail}
+                  {log.error_message && (
+                    <p className="text-xs text-neon-red font-mono mt-1 break-all">
+                      {log.error_message}
                     </p>
                   )}
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-xs text-dark-400 font-mono">
-                    {formatDate(log.at)}
+                    {formatDate(log.created_at)}
                   </p>
                   <div className="flex items-center gap-1 text-xs text-dark-300 font-mono mt-1 justify-end">
-                    <ArrowUpRight className="w-3 h-3" />
-                    {formatDuration(log.duration)}
+                    {formatDuration(log.duration)}ms
                   </div>
                 </div>
               </div>
             </div>
           ))
+        )}
+        {/* Infinite scroll trigger */}
+        {hasMore && (
+          <div ref={loadMoreRef} className="py-4 text-center">
+            {isLoading && (
+              <Loader2 className="w-5 h-5 animate-spin mx-auto text-dark-400" />
+            )}
+          </div>
+        )}
+        {!hasMore && logs.length > 0 && (
+          <div className="py-4 text-center text-xs text-dark-400 font-mono">
+            No more logs
+          </div>
         )}
       </div>
     </div>

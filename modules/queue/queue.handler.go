@@ -509,3 +509,45 @@ func UpdateMessage(c *fiber.Ctx) error {
 
 	return dto.OK(c, "Message updated successfully", message)
 }
+
+// GetLogs - GET /api/queue/logs
+// Query params: limit (default 25), cursor (optional, ID for pagination), status (optional filter)
+func GetLogs(c *fiber.Ctx) error {
+	limit := c.QueryInt("limit", 25)
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	cursor := c.Query("cursor", "")
+	status := c.Query("status", "")
+
+	query := variable.Db.Model(&QueueLog{}).Order("created_at DESC")
+
+	// Apply cursor-based pagination (fetch logs older than cursor)
+	if cursor != "" {
+		var cursorLog QueueLog
+		if err := variable.Db.Where("id = ?", cursor).First(&cursorLog).Error; err == nil {
+			query = query.Where("created_at < ?", cursorLog.CreatedAt)
+		}
+	}
+
+	// Apply status filter
+	if status != "" && (status == QueueLogStatusProcessing || status == QueueLogStatusCompleted || status == QueueLogStatusFailed) {
+		query = query.Where("status = ?", status)
+	}
+
+	logs := make([]QueueLog, 0)
+	if err := query.Limit(limit).Find(&logs).Error; err != nil {
+		return dto.InternalServerError(c, "Failed to get logs", nil)
+	}
+
+	// Get next cursor (last item's ID if we have a full page)
+	var nextCursor string
+	if len(logs) == limit {
+		nextCursor = logs[len(logs)-1].ID.String()
+	}
+
+	return dto.OK(c, "Logs retrieved successfully", fiber.Map{
+		"logs":        logs,
+		"next_cursor": nextCursor,
+	})
+}

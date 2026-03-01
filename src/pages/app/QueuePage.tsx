@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { useQueueStore } from "@/stores/queueStore";
+import { getSocket } from "@/lib/socket";
 import { Plus } from "lucide-react";
 import {
   Dialog,
@@ -40,9 +41,55 @@ export default function QueuePage() {
   const [isLoadingErrors, setIsLoadingErrors] = useState(false);
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
 
+  // Socket.io integration for real-time queue updates
+  const updateQueueInStore = useQueueStore((s) => s.updateQueuePartial);
+
   useEffect(() => {
     fetchAllQueues();
-  }, [fetchAllQueues]);
+
+    // Connect to socket and join update_queue room
+    const socket = getSocket();
+    socket.emit("join_update_queue");
+
+    // Listen for queue updates
+    const handleQueueUpdate = (data: {
+      id: string;
+      enabled: boolean;
+      batch_count: number;
+      is_send_now: boolean;
+      send_later_time: string | null;
+      is_use_delay: boolean;
+      is_random_delay: boolean;
+      delay_sec: number;
+      delay_start: number;
+      delay_end: number;
+      messages: number;
+      completed_count: number;
+      failed_count: number;
+    }) => {
+      updateQueueInStore(data.id, {
+        enabled: data.enabled,
+        batchCount: data.batch_count,
+        isSendNow: data.is_send_now,
+        sendLaterTime: data.send_later_time ?? undefined,
+        isUseDelay: data.is_use_delay,
+        isRandomDelay: data.is_random_delay,
+        delaySec: data.delay_sec,
+        delayStart: data.delay_start,
+        delayEnd: data.delay_end,
+        messages: data.messages,
+        completedCount: data.completed_count,
+        failedCount: data.failed_count,
+      });
+    };
+
+    socket.on("update_queue", handleQueueUpdate);
+
+    return () => {
+      socket.emit("leave_update_queue");
+      socket.off("update_queue", handleQueueUpdate);
+    };
+  }, [fetchAllQueues, updateQueueInStore]);
 
   const [isErrorsOpen, setIsErrorsOpen] = useState(false);
   const [errorsQueue, setErrorsQueue] = useState<Queue | null>(null);

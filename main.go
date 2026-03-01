@@ -38,6 +38,7 @@ func main() {
 	os.MkdirAll(variable.UploadsPath, 0755)
 
 	io := socketio.New()
+	variable.SocketIO = io
 	socket.Init(io)
 
 	app := fiber.New(fiber.Config{

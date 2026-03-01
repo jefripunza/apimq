@@ -10,6 +10,7 @@ func RegisterRoutes(r fiber.Router) {
 	r.Delete("/remove/:key", Delete)
 	r.Patch("/toggle/:key", PatchToggle)
 	r.Get("/errors/:key", GetFailedMessages)
+	r.Get("/logs", GetLogs)
 	r.Put("/message/:id/retry", RetryMessage)
 	r.Put("/message/:id/ack", AckMessage)
 	r.Put("/message/:id", UpdateMessage)
