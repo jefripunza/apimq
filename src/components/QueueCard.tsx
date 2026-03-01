@@ -31,8 +31,11 @@ export default function QueueCard({
   onOpenErrors: (queue: Queue) => void;
 }) {
   const navigate = useNavigate();
-  const toggleQueueEnabled = useQueueStore((s) => s.toggleEnabled);
-  const sendTestMessage = useQueueStore((s) => s.sendTestMessage);
+  const {
+    toggleEnabled: toggleQueueEnabled,
+    fetchAll,
+    sendTestMessage,
+  } = useQueueStore();
   const isError = queue.status === "error";
 
   const [isCodeOpen, setIsCodeOpen] = useState(false);
@@ -54,6 +57,8 @@ export default function QueueCard({
       for (let i = 0; i < n; i += 1) {
         await sendTestMessage(jsonBody);
       }
+
+      await fetchAll();
 
       setSendSuccess(true);
       setTimeout(() => {
