@@ -5,3 +5,5 @@ export interface HeaderEntry {
   key: string;
   value: string;
 }
+
+export type KeyStatus = "idle" | "checking" | "available" | "taken" | "error";

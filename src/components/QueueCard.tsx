@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import { Switch } from "./ui/switch";
 import { Settings, Activity, ArrowUpRight, FileText } from "lucide-react";
-import { useDashboardStore, type QueueItem } from "@/stores/dashboardStore";
+import { useQueueStore, type QueueItem } from "@/stores/queueStore";
 
 export default function QueueCard({
   queue,
@@ -11,7 +11,7 @@ export default function QueueCard({
   onOpenErrors: (queue: QueueItem) => void;
 }) {
   const navigate = useNavigate();
-  const toggleQueueEnabled = useDashboardStore((s) => s.toggleQueueEnabled);
+  const toggleQueueEnabled = useQueueStore((s) => s.toggleEnabled);
   const isError = queue.status === "error";
 
   return (

@@ -1,10 +1,15 @@
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { useNavigate } from "react-router";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import {
   useDashboardStore,
   type QueueErrorItem,
-  type QueueItem,
 } from "@/stores/dashboardStore";
+import { useQueueStore, type QueueItem } from "@/stores/queueStore";
 import { Plus } from "lucide-react";
 import {
   Dialog,
@@ -16,20 +21,30 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import satellite from "@/lib/satellite";
 import { uid } from "@/utils/random";
 import { formatDate } from "@/utils/datetime";
 import QueueCard from "@/components/QueueCard";
-import type { HeaderEntry, SchemaType } from "@/types/queue";
+import type { HeaderEntry, KeyStatus, SchemaType } from "@/types/queue";
 
 export default function QueuePage() {
-  const { queues } = useDashboardStore();
-  const navigate = useNavigate();
-  const errorsByQueue = useDashboardStore((s) => s.errorsByQueue);
-  const ackQueueErrors = useDashboardStore((s) => s.ackQueueErrors);
-  const retryQueueErrors = useDashboardStore((s) => s.retryQueueErrors);
-  const ackQueueError = useDashboardStore((s) => s.ackQueueError);
-  const retryQueueError = useDashboardStore((s) => s.retryQueueError);
+  const {
+    items: queues,
+    fetchAll: fetchAllQueues,
+    checkKeyAvailable,
+    create: createQueue,
+  } = useQueueStore();
+
+  const {
+    errorsByQueue,
+    ackQueueErrors,
+    retryQueueErrors,
+    ackQueueError,
+    retryQueueError,
+  } = useDashboardStore();
+
+  useEffect(() => {
+    fetchAllQueues();
+  }, [fetchAllQueues]);
 
   const [isErrorsOpen, setIsErrorsOpen] = useState(false);
   const [errorsQueue, setErrorsQueue] = useState<QueueItem | null>(null);
@@ -48,7 +63,6 @@ export default function QueuePage() {
   const [newErrorTrace, setNewErrorTrace] = useState(false);
   const [newErrorWebhook, setNewErrorWebhook] = useState("");
 
-  type KeyStatus = "idle" | "checking" | "available" | "taken" | "error";
   const [newKeyStatus, setNewKeyStatus] = useState<KeyStatus>("idle");
   const keyCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -80,10 +94,8 @@ export default function QueuePage() {
     setNewKeyStatus("checking");
     keyCheckTimer.current = setTimeout(async () => {
       try {
-        const res = await satellite.get<{ available: boolean }>(
-          `/api/queue/check-key?key=${encodeURIComponent(trimmed)}`,
-        );
-        setNewKeyStatus(res.data.available ? "available" : "taken");
+        const available = await checkKeyAvailable(trimmed);
+        setNewKeyStatus(available ? "available" : "taken");
       } catch {
         setNewKeyStatus("available");
       }
@@ -99,31 +111,47 @@ export default function QueuePage() {
   const removeNewHeader = (id: string) =>
     setNewHeaders((prev) => prev.filter((h) => h.id !== id));
 
-  const handleCreateNew = (e: FormEvent) => {
+  const handleCreateNew = async (e: FormEvent) => {
     e.preventDefault();
     if (newKeyStatus === "taken") return;
-    setIsNewOpen(false);
-    navigate("/app/queue/new/setup", {
-      state: {
-        prefill: {
-          name: newName,
-          key: newKey,
-          origin: newOrigin,
-          batchCount: newBatchCount,
-          headers: newHeaders
-            .filter((h) => h.key.trim())
-            .map((h) => ({ key: h.key.trim(), value: h.value.trim() })),
-          schema: newSchema,
-          delayRandom: newDelayRandom,
-          delaySec: newDelaySec,
-          delaySecMin: newDelaySecMin,
-          delaySecMax: newDelaySecMax,
-          timingDatetime: newTimingDatetime,
-          errorTrace: newErrorTrace,
-          errorWebhook: newErrorWebhook,
-        },
-      },
+
+    const schemaConfig: Record<string, unknown> = {};
+    if (newSchema === "delay") {
+      if (newDelayRandom) {
+        schemaConfig.random = true;
+        schemaConfig.min = Number(newDelaySecMin || 0);
+        schemaConfig.max = Number(newDelaySecMax || 0);
+      } else {
+        schemaConfig.random = false;
+        schemaConfig.sec = Number(newDelaySec || 0);
+      }
+    }
+
+    if (newSchema === "timing") {
+      schemaConfig.datetime = newTimingDatetime;
+    }
+
+    const errorTrace: Record<string, unknown> = {};
+    if (newErrorTrace) {
+      errorTrace.webhook = newErrorWebhook;
+    }
+
+    const ok = await createQueue({
+      name: newName,
+      key: newKey,
+      origin: newOrigin,
+      batchCount: Number(newBatchCount || 1),
+      headers: newHeaders
+        .filter((h) => h.key.trim())
+        .map((h) => ({ key: h.key.trim(), value: h.value.trim() })),
+      schema: newSchema,
+      schemaConfig,
+      errorTrace,
     });
+
+    if (!ok) return;
+
+    setIsNewOpen(false);
     resetNewQueueForm();
   };
 
@@ -579,7 +607,7 @@ export default function QueuePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {queues.map((queue) => (
           <QueueCard
-            key={queue.name}
+            key={queue.key}
             queue={queue}
             onOpenErrors={(q) => {
               setErrorsQueue(q);
