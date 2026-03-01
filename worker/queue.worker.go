@@ -103,24 +103,64 @@ func (m *Manager) timingCheckerLoop() {
 				continue
 			}
 
-			// Compare times - SendLaterTime must be AFTER now to still be scheduled
-			if q.SendLaterTime.After(now) {
-				log.Printf("⏰ Queue %s still scheduled: now=%v, scheduled=%v (waiting %v)",
-					q.Key, now.Format(time.RFC3339), q.SendLaterTime.Format(time.RFC3339), q.SendLaterTime.Sub(now))
+			// Convert SendLaterTime to local timezone first (DB may store in UTC)
+			scheduledLocal := q.SendLaterTime.In(now.Location())
+
+			// Extract just the TIME (hour:minute:second) from local time
+			scheduledHour := scheduledLocal.Hour()
+			scheduledMin := scheduledLocal.Minute()
+			scheduledSec := scheduledLocal.Second()
+
+			// Calculate TODAY's target time using the scheduled time in local timezone
+			todayTarget := time.Date(
+				now.Year(), now.Month(), now.Day(),
+				scheduledHour, scheduledMin, scheduledSec, 0,
+				now.Location(),
+			)
+
+			// If current time is BEFORE today's target, nothing to do yet
+			if now.Before(todayTarget) {
+				log.Printf("⏰ Queue %s waiting: now=%v, today_target=%v (in %v)",
+					q.Key, now.Format("15:04:05"), todayTarget.Format("15:04:05"), todayTarget.Sub(now))
 				continue
 			}
 
-			log.Printf("⏰ Queue %s time reached: now=%v, scheduled=%v",
-				q.Key, now.Format(time.RFC3339), q.SendLaterTime.Format(time.RFC3339))
-			// Convert all 'timing' messages for this queue to 'pending'
-			result := variable.Db.Model(&queue.QueueMessage{}).
+			// Current time is AT or AFTER today's target - time to execute!
+			// Only convert messages that were created AT or BEFORE today's target time
+			// Messages created AFTER today's target should wait for tomorrow
+			log.Printf("⏰ Queue %s time reached: now=%v, today_target=%v",
+				q.Key, now.Format("15:04:05"), todayTarget.Format("15:04:05"))
+
+			// Count how many timing messages exist for debug
+			var timingCount int64
+			variable.Db.Model(&queue.QueueMessage{}).
 				Where("queue_id = ? AND status = ?", q.ID.String(), queue.QueueMessageStatusTiming).
+				Count(&timingCount)
+
+			if timingCount > 0 {
+				log.Printf("⏰ Queue %s has %d timing messages to check", q.Key, timingCount)
+			}
+
+			// Convert todayTarget to UTC for database comparison (created_at is stored in UTC)
+			todayTargetUTC := todayTarget.UTC()
+			log.Printf("⏰ Queue %s comparing: todayTarget(local)=%v, todayTarget(UTC)=%v",
+				q.Key, todayTarget.Format(time.RFC3339), todayTargetUTC.Format(time.RFC3339))
+
+			// Convert messages created at or before today's target time (use UTC for DB)
+			result := variable.Db.Model(&queue.QueueMessage{}).
+				Where("queue_id = ? AND status = ? AND created_at <= ?",
+					q.ID.String(), queue.QueueMessageStatusTiming, todayTargetUTC).
 				Update("status", queue.QueueMessageStatusPending)
 
 			if result.Error != nil {
 				log.Printf("⚠️  Timing checker: failed to update messages for queue %s: %v", q.Key, result.Error)
 			} else if result.RowsAffected > 0 {
-				log.Printf("⏰ Timing checker: converted %d timing→pending messages for queue %s (scheduled time reached)", result.RowsAffected, q.Key)
+				log.Printf("⏰ Timing checker: converted %d timing→pending messages for queue %s",
+					result.RowsAffected, q.Key)
+			} else if timingCount > 0 {
+				// Messages exist but weren't converted - they were created after today's target
+				log.Printf("⏰ Queue %s: %d timing messages created after %v (UTC), waiting for tomorrow",
+					q.Key, timingCount, todayTargetUTC.Format("15:04:05"))
 			}
 		}
 	}
