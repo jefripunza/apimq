@@ -15,6 +15,7 @@ import {
   Shield,
   FileText,
   Group,
+  Key,
 } from "lucide-react";
 import Loading from "@/components/Loading";
 
@@ -38,6 +39,11 @@ const navItems = [
     label: "Whitelist",
     path: "/app/whitelist",
     icon: Shield,
+  },
+  {
+    label: "Apikey",
+    path: "/app/apikey",
+    icon: Key,
   },
 
   // ----------------------- //

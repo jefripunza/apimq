@@ -11,7 +11,7 @@ import (
 )
 
 func All(c *fiber.Ctx) error {
-	var settings []Setting
+	settings := make([]Setting, 0)
 	if err := variable.Db.Find(&settings).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to get settings", nil)
 	}

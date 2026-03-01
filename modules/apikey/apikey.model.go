@@ -32,5 +32,5 @@ func (a *ApiKey) BeforeCreate(tx *gorm.DB) error {
 func generateKey() string {
 	b := make([]byte, 32)
 	rand.Read(b)
-	return "amq_" + hex.EncodeToString(b)
+	return "apimq_" + hex.EncodeToString(b)
 }

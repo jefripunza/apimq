@@ -23,7 +23,7 @@ func UseWhitelist(c *fiber.Ctx) error {
 	}
 
 	// Load all whitelist entries
-	var entries []whitelistEntry
+	entries := make([]whitelistEntry, 0)
 	if err := variable.Db.Table("whitelists").Select("type, value").Find(&entries).Error; err != nil {
 		return c.Next() // fail open if DB error
 	}

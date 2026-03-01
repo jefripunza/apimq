@@ -88,7 +88,7 @@ func (m *Manager) timingCheckerLoop() {
 
 	for range ticker.C {
 		// Find all queues with IsSendNow=false and SendLaterTime IS NOT NULL
-		var queues []queue.Queue
+		queues := make([]queue.Queue, 0)
 		now := time.Now()
 		if err := variable.Db.
 			Where("is_send_now = ? AND send_later_time IS NOT NULL", false).
@@ -193,7 +193,7 @@ func (m *Manager) timingCheckerLoop() {
 }
 
 func (m *Manager) sync() {
-	var queues []queue.Queue
+	queues := make([]queue.Queue, 0)
 	if err := variable.Db.Find(&queues).Error; err != nil {
 		log.Printf("⚠️  Worker sync: failed to load queues: %v", err)
 		return
@@ -283,7 +283,7 @@ func (m *Manager) runWorker(ctx context.Context, entry *workerEntry, queueID str
 		}
 
 		// fetch pending messages (up to batchCount)
-		var messages []queue.QueueMessage
+		messages := make([]queue.QueueMessage, 0)
 		if err := variable.Db.
 			Where("queue_id = ? AND status = ?", queueID, queue.QueueMessageStatusPending).
 			Order("created_at ASC").
