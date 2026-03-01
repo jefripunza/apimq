@@ -6,6 +6,7 @@ import (
 	"apimq/modules"
 	"apimq/socket"
 	"apimq/variable"
+	"apimq/worker"
 	"embed"
 	"io/fs"
 	"log"
@@ -28,6 +29,10 @@ var embedDist embed.FS
 func main() {
 	// Initialize database
 	database.OpenDB()
+
+	// Start queue worker manager
+	queueWorker := worker.NewManager()
+	queueWorker.Start()
 
 	// Ensure uploads directory exists
 	os.MkdirAll(variable.UploadsPath, 0755)
