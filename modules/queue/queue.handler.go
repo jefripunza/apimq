@@ -93,10 +93,17 @@ func Create(c *fiber.Ctx) error {
 
 // GetAll - GET /api/queue
 func GetAll(c *fiber.Ctx) error {
-	var queues []Queue
-	if err := variable.Db.Order("created_at DESC").Find(&queues).Error; err != nil {
+	queues := make([]Queue, 0)
+	if err := variable.Db.
+		Table("queues").
+		Select(
+			"queues.*, (SELECT COUNT(*) FROM queue_messages WHERE queue_messages.queue_id = queues.id) AS messages",
+		).
+		Order("created_at DESC").
+		Find(&queues).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to get queues", nil)
 	}
+	fmt.Printf("Data: %+v\n", queues)
 
 	return dto.OK(c, "Queues retrieved successfully", queues)
 }

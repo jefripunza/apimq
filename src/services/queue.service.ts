@@ -7,6 +7,7 @@ export interface QueueApi {
   key: string;
   color: string;
   enabled: boolean;
+  messages: number;
   origin: string;
   batch_count: number;
   headers: string;

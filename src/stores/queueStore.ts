@@ -16,7 +16,7 @@ function mapQueueApiToItem(q: QueueApi): Queue {
     key: q.key,
     color: q.color,
     enabled: q.enabled,
-    messages: 0,
+    messages: q.messages ?? 0,
     consumers: 0,
     publishRate: 0,
     deliverRate: 0,

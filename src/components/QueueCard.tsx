@@ -181,7 +181,7 @@ export default function QueueCard({
             </p>
           </div>
           <p className="text-3xl font-bold text-foreground font-mono">
-            {queue.messages.toLocaleString()}
+            {queue.messages}
           </p>
         </div>
       </div>

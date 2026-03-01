@@ -21,6 +21,8 @@ type Queue struct {
 	ErrorTrace   string    `json:"error_trace" gorm:"type:text"`   // JSON string
 	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt    time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+	// metadata
+	Messages int `json:"messages" gorm:"-"` // count of messages
 }
 
 func (q *Queue) BeforeCreate(tx *gorm.DB) error {
