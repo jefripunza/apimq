@@ -16,20 +16,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import satellite from "@/lib/satellite";
-
-// ---------- types ----------
-type SchemaType = "" | "delay" | "timing";
-
-interface HeaderEntry {
-  id: string;
-  key: string;
-  value: string;
-}
-
-// ---------- helpers ----------
-function uid() {
-  return Math.random().toString(36).slice(2, 9);
-}
+import { uid } from "@/utils/random";
+import type { HeaderEntry, SchemaType } from "@/types/queue";
+import SectionTitle from "@/components/SectionTitle";
 
 // ---------- sub-components ----------
 function Label({
@@ -56,18 +45,6 @@ function Input({
       className={`w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm disabled:opacity-50 ${className}`}
       {...props}
     />
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <div className="h-px flex-1 bg-dark-600/40" />
-      <span className="text-xs font-mono text-dark-400 uppercase tracking-wider px-2">
-        {children}
-      </span>
-      <div className="h-px flex-1 bg-dark-600/40" />
-    </div>
   );
 }
 

@@ -9,91 +9,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-interface LogEntry {
-  id: string;
-  queue: string;
-  status: "success" | "error" | "pending";
-  message: string;
-  detail?: string;
-  at: string;
-  duration: number;
-}
-
-const mockLogs: LogEntry[] = [
-  {
-    id: "log_1",
-    queue: "order.processing",
-    status: "success",
-    message: "Delivered to webhook",
-    detail: "POST https://api.example.com/orders → 200 OK",
-    at: new Date(Date.now() - 1000 * 30).toISOString(),
-    duration: 120,
-  },
-  {
-    id: "log_2",
-    queue: "email.notifications",
-    status: "success",
-    message: "Delivered to webhook",
-    detail: "POST https://mail.example.com/send → 200 OK",
-    at: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
-    duration: 340,
-  },
-  {
-    id: "log_3",
-    queue: "inventory.sync",
-    status: "error",
-    message: "Webhook returned 500",
-    detail: "POST https://inv.example.com/sync → 500 Internal Server Error",
-    at: new Date(Date.now() - 1000 * 60 * 6).toISOString(),
-    duration: 5023,
-  },
-  {
-    id: "log_4",
-    queue: "payment.webhook",
-    status: "success",
-    message: "Delivered to webhook",
-    detail: "POST https://pay.example.com/hook → 200 OK",
-    at: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-    duration: 89,
-  },
-  {
-    id: "log_5",
-    queue: "analytics.events",
-    status: "pending",
-    message: "Waiting for delivery",
-    at: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
-    duration: 0,
-  },
-  {
-    id: "log_6",
-    queue: "inventory.sync",
-    status: "error",
-    message: "Connection timeout",
-    detail: "Request timeout after 10s",
-    at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    duration: 10000,
-  },
-  {
-    id: "log_7",
-    queue: "order.processing",
-    status: "success",
-    message: "Delivered to webhook",
-    detail: "POST https://api.example.com/orders → 200 OK",
-    at: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-    duration: 95,
-  },
-  {
-    id: "log_8",
-    queue: "log.aggregation",
-    status: "success",
-    message: "Delivered to webhook",
-    detail: "POST https://logs.example.com/ingest → 201 Created",
-    at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    duration: 210,
-  },
-];
-
-type StatusFilter = "all" | "success" | "error" | "pending";
+import { mockLogs } from "@/mock";
+import { formatDate } from "@/utils/datetime";
+import { formatDuration } from "@/utils/format";
+import type { StatusFilter } from "@/types/log";
 
 const statusIcon = {
   success: <CheckCircle2 className="w-3.5 h-3.5 text-neon-green" />,
@@ -106,18 +25,6 @@ const statusBadge = {
   error: "text-neon-red bg-neon-red/10 border-neon-red/20",
   pending: "text-neon-yellow bg-neon-yellow/10 border-neon-yellow/20",
 };
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString();
-}
-
-function formatDuration(ms: number) {
-  if (ms === 0) return "—";
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
-}
 
 export default function LogsPage() {
   const [search, setSearch] = useState("");

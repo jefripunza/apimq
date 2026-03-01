@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router";
+import { Outlet, useNavigate, useLocation } from "react-router";
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { useThemeStore } from "@/stores/themeStore";
@@ -6,25 +6,22 @@ import Loading from "@/components/Loading";
 
 export default function AuthLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const { isAuthenticated, isLoading, validateToken } = useAuthStore();
+  const { isLoading, validateToken } = useAuthStore();
   const { isDarkMode } = useThemeStore();
 
   useEffect(() => {
     const checkAuth = async () => {
-      const valid = await validateToken();
+      const valid = await validateToken("auth");
       if (valid) {
-        navigate("/app/dashboard", { replace: true });
+        if (!location.pathname.startsWith("/app")) {
+          navigate("/app/dashboard", { replace: true });
+        }
       }
     };
     checkAuth();
-  }, [validateToken, navigate]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/app/dashboard", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
+  }, [validateToken, navigate, location.pathname]);
 
   useEffect(() => {
     const root = document.documentElement;

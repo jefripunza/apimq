@@ -1,0 +1,106 @@
+import type { LogEntry } from "@/types/log";
+import type { WhitelistEntry } from "@/types/whitelist";
+
+export const mockLogs: LogEntry[] = [
+  {
+    id: "log_1",
+    queue: "order.processing",
+    status: "success",
+    message: "Delivered to webhook",
+    detail: "POST https://api.example.com/orders → 200 OK",
+    at: new Date(Date.now() - 1000 * 30).toISOString(),
+    duration: 120,
+  },
+  {
+    id: "log_2",
+    queue: "email.notifications",
+    status: "success",
+    message: "Delivered to webhook",
+    detail: "POST https://mail.example.com/send → 200 OK",
+    at: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
+    duration: 340,
+  },
+  {
+    id: "log_3",
+    queue: "inventory.sync",
+    status: "error",
+    message: "Webhook returned 500",
+    detail: "POST https://inv.example.com/sync → 500 Internal Server Error",
+    at: new Date(Date.now() - 1000 * 60 * 6).toISOString(),
+    duration: 5023,
+  },
+  {
+    id: "log_4",
+    queue: "payment.webhook",
+    status: "success",
+    message: "Delivered to webhook",
+    detail: "POST https://pay.example.com/hook → 200 OK",
+    at: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+    duration: 89,
+  },
+  {
+    id: "log_5",
+    queue: "analytics.events",
+    status: "pending",
+    message: "Waiting for delivery",
+    at: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
+    duration: 0,
+  },
+  {
+    id: "log_6",
+    queue: "inventory.sync",
+    status: "error",
+    message: "Connection timeout",
+    detail: "Request timeout after 10s",
+    at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    duration: 10000,
+  },
+  {
+    id: "log_7",
+    queue: "order.processing",
+    status: "success",
+    message: "Delivered to webhook",
+    detail: "POST https://api.example.com/orders → 200 OK",
+    at: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
+    duration: 95,
+  },
+  {
+    id: "log_8",
+    queue: "log.aggregation",
+    status: "success",
+    message: "Delivered to webhook",
+    detail: "POST https://logs.example.com/ingest → 201 Created",
+    at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    duration: 210,
+  },
+];
+
+export const initialEntries: WhitelistEntry[] = [
+  {
+    id: "wl_1",
+    type: "ip",
+    value: "192.168.1.100",
+    label: "Office server",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
+  },
+  {
+    id: "wl_2",
+    type: "domain",
+    value: "api.example.com",
+    label: "Main API",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
+  },
+  {
+    id: "wl_3",
+    type: "ip",
+    value: "10.0.0.50",
+    label: "Staging",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+  },
+  {
+    id: "wl_4",
+    type: "domain",
+    value: "webhook.internal.dev",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+  },
+];

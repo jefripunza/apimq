@@ -53,7 +53,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { isAuthenticated, isLoading, validateToken, logout } = useAuthStore();
+  const { isLoading, validateToken, logout } = useAuthStore();
   const {
     isCollapsed,
     isMobileOpen,
@@ -67,19 +67,13 @@ export default function AppLayout() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const valid = await validateToken();
+      const valid = await validateToken("app");
       if (!valid) {
         navigate("/", { replace: true });
       }
     };
     checkAuth();
   }, [validateToken, navigate]);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)"); // lg

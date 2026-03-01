@@ -3,6 +3,7 @@ import { create } from "zustand";
 export interface QueueItem {
   name: string;
   key: string;
+  color: string;
   enabled: boolean;
   messages: number;
   consumers: number;
@@ -44,6 +45,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "order.processing",
       key: "order.processing",
+      color: "#6366f1",
       enabled: true,
       messages: 1_243,
       consumers: 3,
@@ -54,6 +56,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "email.notifications",
       key: "email.notifications",
+      color: "#22c55e",
       enabled: true,
       messages: 892,
       consumers: 2,
@@ -64,6 +67,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "payment.webhook",
       key: "payment.webhook",
+      color: "#06b6d4",
       enabled: true,
       messages: 456,
       consumers: 1,
@@ -74,6 +78,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "analytics.events",
       key: "analytics.events",
+      color: "#eab308",
       enabled: true,
       messages: 12_304,
       consumers: 4,
@@ -84,6 +89,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "user.registration",
       key: "user.registration",
+      color: "#f97316",
       enabled: false,
       messages: 23,
       consumers: 1,
@@ -94,6 +100,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "inventory.sync",
       key: "inventory.sync",
+      color: "#ec4899",
       enabled: true,
       messages: 8_901,
       consumers: 0,
@@ -104,6 +111,7 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     {
       name: "log.aggregation",
       key: "log.aggregation",
+      color: "#a855f7",
       enabled: true,
       messages: 24_573,
       consumers: 2,

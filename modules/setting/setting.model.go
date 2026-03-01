@@ -42,7 +42,7 @@ func Seed(db *gorm.DB) {
 	hash_password := fmt.Sprintf("%x", md5.Sum([]byte("admin")))
 
 	settings := map[string]string{
-		"password": hash_password,
+		"auth_password": hash_password,
 	}
 
 	inserts := []string{}
