@@ -338,16 +338,21 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 
 	// read response body for error context
 	respBody, _ := io.ReadAll(resp.Body)
+	respStr := string(respBody)
+	if len(respStr) > 20000 {
+		respStr = respStr[:20000]
+	}
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		// success
 		if debug {
 			log.Printf("✅ Message id=%s success HTTP %d", msg.ID.String(), resp.StatusCode)
 		}
-		if err := variable.Db.Model(msg).
-			Update("status", queue.QueueMessageStatusCompleted).
-			Update("is_ack", true).
-			Error; err != nil {
+		if err := variable.Db.Model(msg).Updates(map[string]interface{}{
+			"status":   queue.QueueMessageStatusCompleted,
+			"is_ack":   true,
+			"response": respStr,
+		}).Error; err != nil {
 			log.Printf("⚠️  Failed updating status=completed message id=%s err=%v", msg.ID.String(), err)
 		}
 	} else {
@@ -360,6 +365,7 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		variable.Db.Model(msg).Updates(map[string]interface{}{
 			"status":        queue.QueueMessageStatusFailed,
 			"error_message": errMsg,
+			"response":      respStr,
 		})
 	}
 }

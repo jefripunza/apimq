@@ -9,7 +9,7 @@ const server = Bun.serve({
     const headers = Object.fromEntries(request.headers.entries());
 
     let rawBody: string | null = null;
-    let jsonBody: unknown = null;
+    let jsonBody: Record<string, unknown> = {};
 
     try {
       rawBody = await request.text();
@@ -17,20 +17,30 @@ const server = Bun.serve({
         try {
           jsonBody = JSON.parse(rawBody);
         } catch {
-          jsonBody = null;
+          jsonBody = {};
         }
       }
     } catch {
       rawBody = null;
-      jsonBody = null;
+      jsonBody = {};
     }
 
     console.log("Method:", request.method);
     console.log("Path:", url.pathname);
     console.log("Query:", query);
     console.log("Headers:", headers);
-    console.log("Body (raw):", rawBody);
-    console.log("Body (json):", jsonBody);
+    console.log("Body:", jsonBody);
+
+    if (jsonBody["fuck"] === true) {
+      return Response.json(
+        {
+          message: "Fuck you!",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
 
     return Response.json({
       message: "OK!",
@@ -38,7 +48,7 @@ const server = Bun.serve({
       path: url.pathname,
       query,
       headers,
-      body: jsonBody ?? rawBody,
+      body: jsonBody,
     });
   },
 });

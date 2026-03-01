@@ -5,7 +5,8 @@
     "ok": 1
   },
   "body": {
-    "nice": 2
+    "nice": 2,
+    "fuck": true
   },
   "headers": {
     "X-Api-Key": 3
