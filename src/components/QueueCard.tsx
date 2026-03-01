@@ -48,6 +48,7 @@ export default function QueueCard({
     setIsSending(true);
     try {
       const n = Math.max(1, Number(sendCount) || 1);
+      jsonBody["queue_id"] = queue.id;
       jsonBody["key"] = queue.key;
 
       for (let i = 0; i < n; i += 1) {
@@ -72,6 +73,7 @@ export default function QueueCard({
 
   useEffect(() => {
     setJsonBody({
+      queue_id: queue.id,
       key: queue.key,
       method: "POST",
       query: {},
@@ -79,7 +81,7 @@ export default function QueueCard({
       headers: {},
     });
     setSendCount("1");
-  }, [isCodeOpen, queue.key]);
+  }, [isCodeOpen, queue.id, queue.key]);
 
   return (
     <div
@@ -94,7 +96,7 @@ export default function QueueCard({
         <div className="min-w-0">
           <button
             type="button"
-            onClick={() => navigate(`/app/queue/${queue.key}/setup`)}
+            onClick={() => navigate(`/app/queue/${queue.id}/setup`)}
             className="text-left w-full"
             title="Open setup"
           >
@@ -187,12 +189,12 @@ export default function QueueCard({
             <Switch
               checked={queue.enabled}
               onCheckedChange={(checked) =>
-                toggleQueueEnabled(queue.key, checked)
+                toggleQueueEnabled(queue.id, checked)
               }
               aria-label={queue.enabled ? "Queue enabled" : "Queue disabled"}
             />
             <button
-              onClick={() => navigate(`/app/queue/${queue.key}/setup`)}
+              onClick={() => navigate(`/app/queue/${queue.id}/setup`)}
               className="p-1.5 rounded-lg text-dark-400 hover:text-foreground hover:bg-dark-700/50 transition-all opacity-100"
               title="Configure queue"
             >

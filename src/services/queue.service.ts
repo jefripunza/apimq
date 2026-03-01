@@ -52,9 +52,15 @@ export const queueService = {
       await satellite.get<Response<QueueApi[]>>("/api/queue/all");
     return response.data;
   },
+  getById: async (id: string) => {
+    const response = await satellite.get<Response<QueueApi>>(
+      `/api/queue/one/${encodeURIComponent(id)}`,
+    );
+    return response.data;
+  },
   getByKey: async (key: string) => {
     const response = await satellite.get<Response<QueueApi>>(
-      `/api/queue/one/${encodeURIComponent(key)}`,
+      `/api/queue/by-key/${encodeURIComponent(key)}`,
     );
     return response.data;
   },
@@ -65,29 +71,30 @@ export const queueService = {
     );
     return response.data;
   },
-  update: async (key: string, payload: UpdateQueuePayload) => {
+  update: async (id: string, payload: UpdateQueuePayload) => {
     const response = await satellite.put<Response<QueueApi>>(
-      `/api/queue/edit/${encodeURIComponent(key)}`,
+      `/api/queue/edit/${encodeURIComponent(id)}`,
       payload,
     );
     return response.data;
   },
-  remove: async (key: string) => {
+  remove: async (id: string) => {
     const response = await satellite.delete<Response<null>>(
-      `/api/queue/remove/${encodeURIComponent(key)}`,
+      `/api/queue/remove/${encodeURIComponent(id)}`,
     );
     return response.data;
   },
-  toggleEnabled: async (key: string, enabled: boolean) => {
+  toggleEnabled: async (id: string, enabled: boolean) => {
     const response = await satellite.patch<Response<QueueApi>>(
-      `/api/queue/toggle/${encodeURIComponent(key)}`,
+      `/api/queue/toggle/${encodeURIComponent(id)}`,
       { enabled },
     );
     return response.data;
   },
   sendTestMessage: async (json: Record<string, unknown>) => {
     const payload = {
-      key: json.key as string,
+      queue_id: json.queue_id as string | undefined,
+      key: json.key as string | undefined,
       method: (json.method as string) ?? "POST",
       query: json.query ? JSON.stringify(json.query) : undefined,
       body: JSON.stringify(json.body),
@@ -96,9 +103,9 @@ export const queueService = {
     const response = await satellite.post<Response<null>>(`/queue`, payload);
     return response.data;
   },
-  getFailedMessages: async (key: string) => {
+  getFailedMessages: async (id: string) => {
     const response = await satellite.get<Response<QueueMessageApi[]>>(
-      `/api/queue/errors/${encodeURIComponent(key)}`,
+      `/api/queue/errors/${encodeURIComponent(id)}`,
     );
     return response.data;
   },

@@ -80,15 +80,15 @@ interface QueueState {
   error: string | null;
 
   fetchAll: () => Promise<boolean>;
-  fetchByKey: (key: string) => Promise<Queue | null>;
+  fetchById: (id: string) => Promise<Queue | null>;
   checkKeyAvailable: (key: string) => Promise<boolean>;
   create: (payload: CreateQueuePayload) => Promise<boolean>;
-  update: (key: string, payload: UpdateQueuePayload) => Promise<boolean>;
-  remove: (key: string) => Promise<boolean>;
-  toggleEnabled: (key: string, enabled: boolean) => Promise<boolean>;
+  update: (id: string, payload: UpdateQueuePayload) => Promise<boolean>;
+  remove: (id: string) => Promise<boolean>;
+  toggleEnabled: (id: string, enabled: boolean) => Promise<boolean>;
   updateQueuePartial: (id: string, partial: Partial<Queue>) => void;
   sendTestMessage: (json: Record<string, unknown>) => Promise<boolean>;
-  getFailedMessages: (key: string) => Promise<QueueMessageApi[]>;
+  getFailedMessages: (id: string) => Promise<QueueMessageApi[]>;
   retryMessage: (messageId: string) => Promise<boolean>;
   ackMessage: (messageId: string) => Promise<boolean>;
 }
@@ -115,17 +115,17 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
     }
   },
 
-  fetchByKey: async (key: string) => {
+  fetchById: async (id: string) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await queueService.getByKey(key);
+      const res = await queueService.getById(id);
       if (!res.data) {
         set({ isLoading: false });
         return null;
       }
       const item = mapQueueApiToItem(res.data);
       set({
-        items: [item, ...get().items.filter((q) => q.key !== key)],
+        items: [item, ...get().items.filter((q) => q.id !== id)],
         isLoading: false,
       });
       return item;
@@ -175,14 +175,14 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
     }
   },
 
-  update: async (key, payload) => {
+  update: async (id, payload) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await queueService.update(key, payload);
+      const res = await queueService.update(id, payload);
       if (res.data) {
         const updated = mapQueueApiToItem(res.data);
         set({
-          items: get().items.map((q) => (q.key === key ? updated : q)),
+          items: get().items.map((q) => (q.id === id ? updated : q)),
           isLoading: false,
         });
       } else {
@@ -199,12 +199,12 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
     }
   },
 
-  remove: async (key) => {
+  remove: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      await queueService.remove(key);
+      await queueService.remove(id);
       set({
-        items: get().items.filter((q) => q.key !== key),
+        items: get().items.filter((q) => q.id !== id),
         isLoading: false,
       });
       return true;
@@ -218,19 +218,19 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
     }
   },
 
-  toggleEnabled: async (key, enabled) => {
+  toggleEnabled: async (id, enabled) => {
     // optimistic update
     const prev = get().items;
-    set({ items: prev.map((q) => (q.key === key ? { ...q, enabled } : q)) });
+    set({ items: prev.map((q) => (q.id === id ? { ...q, enabled } : q)) });
     try {
-      const res = await queueService.toggleEnabled(key, enabled);
+      const res = await queueService.toggleEnabled(id, enabled);
       if (res.data) {
-        const nextEnabled = res.data.enabled ?? enabled;
-        set({
-          items: get().items.map((q) =>
-            q.key === key ? { ...q, enabled: nextEnabled } : q,
-          ),
-        });
+        const resp = await queueService.getAll();
+        if (resp.data) {
+          set({ items: resp.data.map(mapQueueApiToItem), isLoading: false });
+        } else {
+          set({ isLoading: false });
+        }
       }
       return true;
     } catch (err: unknown) {
@@ -259,9 +259,9 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
     }
   },
 
-  getFailedMessages: async (key: string) => {
+  getFailedMessages: async (id: string) => {
     try {
-      const res = await queueService.getFailedMessages(key);
+      const res = await queueService.getFailedMessages(id);
       return res.data ?? [];
     } catch (err: unknown) {
       const e = err as AxiosError;

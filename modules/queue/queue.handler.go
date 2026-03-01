@@ -210,6 +210,20 @@ func GetAll(c *fiber.Ctx) error {
 	return dto.OK(c, "Queues retrieved successfully", queues)
 }
 
+func GetByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return dto.BadRequest(c, "ID is required", nil)
+	}
+
+	var queue Queue
+	if err := variable.Db.Where("id = ?", id).First(&queue).Error; err != nil {
+		return dto.NotFound(c, "Queue not found", nil)
+	}
+
+	return dto.OK(c, "Queue retrieved successfully", queue)
+}
+
 // GetByKey - GET /api/queue/:key
 func GetByKey(c *fiber.Ctx) error {
 	key := c.Params("key")
@@ -225,15 +239,14 @@ func GetByKey(c *fiber.Ctx) error {
 	return dto.OK(c, "Queue retrieved successfully", queue)
 }
 
-// Update - PUT /api/queue/:key
-func Update(c *fiber.Ctx) error {
-	key := c.Params("key")
-	if key == "" {
-		return dto.BadRequest(c, "Key is required", nil)
+func UpdateByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return dto.BadRequest(c, "ID is required", nil)
 	}
 
 	var queue Queue
-	if err := variable.Db.Where("key = ?", key).First(&queue).Error; err != nil {
+	if err := variable.Db.Where("id = ?", id).First(&queue).Error; err != nil {
 		return dto.NotFound(c, "Queue not found", nil)
 	}
 
@@ -304,15 +317,14 @@ func Update(c *fiber.Ctx) error {
 	return dto.OK(c, "Queue updated successfully", nil)
 }
 
-// Delete - DELETE /api/queue/:key
-func Delete(c *fiber.Ctx) error {
-	key := c.Params("key")
-	if key == "" {
-		return dto.BadRequest(c, "Key is required", nil)
+func DeleteByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return dto.BadRequest(c, "ID is required", nil)
 	}
 
 	var queue Queue
-	if err := variable.Db.Where("key = ?", key).First(&queue).Error; err != nil {
+	if err := variable.Db.Where("id = ?", id).First(&queue).Error; err != nil {
 		return dto.NotFound(c, "Queue not found", nil)
 	}
 
@@ -323,15 +335,14 @@ func Delete(c *fiber.Ctx) error {
 	return dto.OK(c, "Queue deleted successfully", nil)
 }
 
-// PatchToggle - PATCH /api/queue/:key/toggle
-func PatchToggle(c *fiber.Ctx) error {
-	key := c.Params("key")
-	if key == "" {
-		return dto.BadRequest(c, "Key is required", nil)
+func PatchToggleByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return dto.BadRequest(c, "ID is required", nil)
 	}
 
 	var queue Queue
-	if err := variable.Db.Where("key = ?", key).First(&queue).Error; err != nil {
+	if err := variable.Db.Where("id = ?", id).First(&queue).Error; err != nil {
 		return dto.NotFound(c, "Queue not found", nil)
 	}
 
@@ -352,6 +363,7 @@ func PatchToggle(c *fiber.Ctx) error {
 // ---------------------------------------------------- //
 
 type AddToMessageRequest struct {
+	QueueID string  `json:"queue_id"`
 	Key     string  `json:"key"`
 	Method  string  `json:"method"`
 	Query   *string `json:"query,omitempty"`
@@ -365,8 +377,8 @@ func AddToMessage(c *fiber.Ctx) error {
 		return dto.BadRequest(c, "Invalid request body", nil)
 	}
 
-	if req.Key == "" {
-		return dto.BadRequest(c, "Key is required", nil)
+	if req.QueueID == "" && req.Key == "" {
+		return dto.BadRequest(c, "Queue ID is required", nil)
 	}
 	if req.Method == "" {
 		return dto.BadRequest(c, "Method is required", nil)
@@ -376,8 +388,14 @@ func AddToMessage(c *fiber.Ctx) error {
 	}
 
 	var queue Queue
-	if err := variable.Db.Where("key = ?", req.Key).First(&queue).Error; err != nil {
-		return dto.NotFound(c, "Queue not found", nil)
+	if req.QueueID != "" {
+		if err := variable.Db.Where("id = ?", req.QueueID).First(&queue).Error; err != nil {
+			return dto.NotFound(c, "Queue not found", nil)
+		}
+	} else {
+		if err := variable.Db.Where("key = ?", req.Key).First(&queue).Error; err != nil {
+			return dto.NotFound(c, "Queue not found", nil)
+		}
 	}
 
 	message := QueueMessage{
@@ -395,15 +413,14 @@ func AddToMessage(c *fiber.Ctx) error {
 	return dto.OK(c, "Message added to queue successfully", nil)
 }
 
-// GetFailedMessages - GET /api/queue/:key/errors
-func GetFailedMessages(c *fiber.Ctx) error {
-	key := c.Params("key")
-	if key == "" {
-		return dto.BadRequest(c, "Key is required", nil)
+func GetFailedMessagesByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return dto.BadRequest(c, "ID is required", nil)
 	}
 
 	var queue Queue
-	if err := variable.Db.Where("key = ?", key).First(&queue).Error; err != nil {
+	if err := variable.Db.Where("id = ?", id).First(&queue).Error; err != nil {
 		return dto.NotFound(c, "Queue not found", nil)
 	}
 

@@ -11,7 +11,7 @@ export type KeyStatus = "idle" | "checking" | "available" | "taken" | "error";
 export type QueueStatus = "running" | "idle" | "error";
 
 export type Queue = {
-  id?: string;
+  id: string;
   name: string;
   key: string;
   color: string;

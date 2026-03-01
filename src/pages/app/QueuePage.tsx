@@ -217,10 +217,10 @@ export default function QueuePage() {
     resetNewQueueForm();
   };
 
-  const fetchFailedMessages = async (key: string) => {
+  const fetchFailedMessages = async (id: string) => {
     setIsLoadingErrors(true);
     try {
-      const messages = await getFailedMessages(key);
+      const messages = await getFailedMessages(id);
       setFailedMessages(messages);
     } catch {
       setFailedMessages([]);
@@ -785,12 +785,12 @@ export default function QueuePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {queues.map((queue) => (
           <QueueCard
-            key={queue.key}
+            key={queue.id}
             queue={queue}
             onOpenErrors={(q) => {
               setErrorsQueue(q);
               setIsErrorsOpen(true);
-              fetchFailedMessages(q.key);
+              fetchFailedMessages(q.id);
             }}
           />
         ))}

@@ -33,7 +33,7 @@ export default function QueueSetupPage() {
 
   const {
     items: queues,
-    fetchByKey,
+    fetchById,
     update: updateQueue,
     remove: removeQueue,
   } = useQueueStore();
@@ -143,7 +143,7 @@ export default function QueueSetupPage() {
   useEffect(() => {
     if (!isEdit || !id) return;
 
-    const existing = queues.find((q) => q.key === id);
+    const existing = queues.find((q) => q.id === id);
     if (existing) {
       setName(existing.name ?? "");
       setKey(existing.key ?? "");
@@ -182,7 +182,7 @@ export default function QueueSetupPage() {
     }
 
     // fallback: fetch from API
-    fetchByKey(id).then((q) => {
+    fetchById(id).then((q) => {
       if (!q) return;
       setName(q.name ?? "");
       setKey(q.key ?? "");
@@ -218,7 +218,7 @@ export default function QueueSetupPage() {
       setErrorTrace(Boolean(webhook));
       setErrorWebhook(webhook);
     });
-  }, [fetchByKey, id, isEdit, queues]);
+  }, [fetchById, id, isEdit, queues]);
 
   // ---- key check on blur ----
   const handleKeyBlur = useCallback(async () => {
