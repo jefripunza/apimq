@@ -99,12 +99,12 @@ jobs:
       - name: Wait 5 seconds
         run: sleep 5
 
-      - name: Trigger remote deploy API
-        run: |
-          curl -s -X GET \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
-            "https://c00l.molinar.id/api/v1/deploy?uuid=${{ secrets.COOLIFY_UUID }}&force=false"
-          echo "Deployed successfully: https://apimq.molinar.id"
+      # - name: Trigger remote deploy API
+      #   run: |
+      #     curl -s -X GET \
+      #       -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+      #       "https://c00l.molinar.id/api/v1/deploy?uuid=${{ secrets.COOLIFY_UUID }}&force=false"
+      #     echo "Deployed successfully: https://apimq.molinar.id"
 
   github_release:
     needs: build
