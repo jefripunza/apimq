@@ -88,7 +88,7 @@ func Create(c *fiber.Ctx) error {
 		return dto.InternalServerError(c, "Failed to create queue", nil)
 	}
 
-	return dto.OK(c, "Queue created successfully", queue)
+	return dto.OK(c, "Queue created successfully", nil)
 }
 
 // GetAll - GET /api/queue
@@ -189,7 +189,7 @@ func Update(c *fiber.Ctx) error {
 		return dto.InternalServerError(c, "Failed to update queue", nil)
 	}
 
-	return dto.OK(c, "Queue updated successfully", queue)
+	return dto.OK(c, "Queue updated successfully", nil)
 }
 
 // Delete - DELETE /api/queue/:key
@@ -275,10 +275,9 @@ func AddToMessage(c *fiber.Ctx) error {
 		Headers: req.Headers,
 		Status:  QueueMessageStatusPending,
 	}
-
 	if err := variable.Db.Create(&message).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to add message to queue", nil)
 	}
 
-	return dto.OK(c, "Message added to queue successfully", message)
+	return dto.OK(c, "Message added to queue successfully", nil)
 }

@@ -16,6 +16,8 @@ import (
 	"time"
 )
 
+const debug = false
+
 // ─── worker entry per queue ─────────────────────────────────────────────────
 
 type workerEntry struct {
@@ -66,6 +68,7 @@ func (m *Manager) Start() {
 
 func (m *Manager) syncLoop() {
 	// initial sync immediately
+	log.Println("🔄 Worker sync loop started")
 	m.sync()
 
 	ticker := time.NewTicker(3 * time.Second)
@@ -81,6 +84,9 @@ func (m *Manager) sync() {
 		log.Printf("⚠️  Worker sync: failed to load queues: %v", err)
 		return
 	}
+	if debug {
+		log.Printf("🔄 Worker sync: found %d queues", len(queues))
+	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -93,7 +99,11 @@ func (m *Manager) sync() {
 
 		if entry, exists := m.workers[id]; exists {
 			// update enabled state
+			prevEnabled := entry.isEnabled()
 			entry.setEnabled(q.Enabled)
+			if prevEnabled != q.Enabled && debug {
+				log.Printf("🧷 Worker sync: queue %s (%s) enabled changed %v -> %v", q.Key, id, prevEnabled, q.Enabled)
+			}
 		} else {
 			// new queue → start worker
 			m.startWorker(q)
@@ -120,7 +130,10 @@ func (m *Manager) startWorker(q queue.Queue) {
 	m.workers[q.ID.String()] = entry
 
 	go m.runWorker(ctx, entry, q.ID.String(), q.BatchCount)
-	log.Printf("▶️  Worker started for queue %s (%s)", q.Key, q.ID.String())
+
+	if debug {
+		log.Printf("▶️  Worker started for queue %s (%s) batchCount=%d enabled=%v origin=%s", q.Key, q.ID.String(), q.BatchCount, q.Enabled, q.Origin)
+	}
 }
 
 // ─── per-queue worker goroutine ─────────────────────────────────────────────
@@ -130,19 +143,27 @@ func (m *Manager) runWorker(ctx context.Context, entry *workerEntry, queueID str
 		batchCount = 1
 	}
 
+	if debug {
+		log.Printf("👂 Worker loop running queueID=%s batchCount=%d", queueID, batchCount)
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
+			log.Printf("🛑 Worker loop stopped queueID=%s", queueID)
 			return
 		default:
 		}
 
 		// if disabled, wait until enabled or cancelled
 		if !entry.isEnabled() {
+			log.Printf("⏸️  Worker paused queueID=%s (enabled=false)", queueID)
 			select {
 			case <-ctx.Done():
+				log.Printf("🛑 Worker loop stopped while paused queueID=%s", queueID)
 				return
 			case <-entry.wake:
+				log.Printf("▶️  Worker resumed queueID=%s (enabled=true)", queueID)
 				continue
 			}
 		}
@@ -159,6 +180,10 @@ func (m *Manager) runWorker(ctx context.Context, entry *workerEntry, queueID str
 			continue
 		}
 
+		if debug {
+			log.Printf("📥 Worker queueID=%s fetched pending=%d", queueID, len(messages))
+		}
+
 		if len(messages) == 0 {
 			// no pending messages — sleep then re-check
 			sleepOrCancel(ctx, 1*time.Second)
@@ -171,15 +196,20 @@ func (m *Manager) runWorker(ctx context.Context, entry *workerEntry, queueID str
 			log.Printf("⚠️  Worker %s: queue not found, stopping", queueID)
 			return
 		}
+		if debug {
+			log.Printf("⚙️  Worker queueID=%s config key=%s enabled=%v origin=%s", queueID, q.Key, q.Enabled, q.Origin)
+		}
 
 		for _, msg := range messages {
 			select {
 			case <-ctx.Done():
+				log.Printf("🛑 Worker loop stopped queueID=%s", queueID)
 				return
 			default:
 			}
 
 			if !entry.isEnabled() {
+				log.Printf("⏸️  Worker paused mid-batch queueID=%s", queueID)
 				break // will re-enter the outer loop and pause
 			}
 
@@ -191,8 +221,21 @@ func (m *Manager) runWorker(ctx context.Context, entry *workerEntry, queueID str
 // ─── process a single message ───────────────────────────────────────────────
 
 func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
+	if debug {
+		log.Printf(
+			"➡️  Processing message id=%s queueKey=%s queueID=%s method=%s status=%s",
+			msg.ID.String(),
+			q.Key,
+			msg.QueueID,
+			msg.Method,
+			msg.Status,
+		)
+	}
+
 	// mark as processing
-	variable.Db.Model(msg).Update("status", queue.QueueMessageStatusProcessing)
+	if err := variable.Db.Model(msg).Update("status", queue.QueueMessageStatusProcessing).Error; err != nil {
+		log.Printf("⚠️  Failed updating status=processing message id=%s err=%v", msg.ID.String(), err)
+	}
 
 	// build URL
 	targetURL := strings.TrimRight(q.Origin, "/")
@@ -227,11 +270,15 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 	req, err := http.NewRequest(method, targetURL, bodyReader)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to build request: %v", err)
+		log.Printf("❌ Message id=%s build request failed: %s", msg.ID.String(), errMsg)
 		variable.Db.Model(msg).Updates(map[string]interface{}{
 			"status":        queue.QueueMessageStatusFailed,
 			"error_message": errMsg,
 		})
 		return
+	}
+	if debug {
+		log.Printf("🌐 Message id=%s request %s %s", msg.ID.String(), method, targetURL)
 	}
 
 	// default content-type for methods with body
@@ -266,6 +313,7 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 	resp, err := client.Do(req)
 	if err != nil {
 		errMsg := fmt.Sprintf("request failed: %v", err)
+		log.Printf("❌ Message id=%s request failed: %s", msg.ID.String(), errMsg)
 		variable.Db.Model(msg).Updates(map[string]interface{}{
 			"status":        queue.QueueMessageStatusFailed,
 			"error_message": errMsg,
@@ -279,13 +327,22 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		// success
-		variable.Db.Model(msg).Update("status", queue.QueueMessageStatusCompleted)
+		if debug {
+			log.Printf("✅ Message id=%s success HTTP %d", msg.ID.String(), resp.StatusCode)
+		}
+		if err := variable.Db.Model(msg).
+			Update("status", queue.QueueMessageStatusCompleted).
+			Update("is_ack", true).
+			Error; err != nil {
+			log.Printf("⚠️  Failed updating status=completed message id=%s err=%v", msg.ID.String(), err)
+		}
 	} else {
 		// HTTP error
 		errMsg := fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(respBody))
 		if len(errMsg) > 2000 {
 			errMsg = errMsg[:2000]
 		}
+		log.Printf("❌ Message id=%s failed: %s", msg.ID.String(), errMsg)
 		variable.Db.Model(msg).Updates(map[string]interface{}{
 			"status":        queue.QueueMessageStatusFailed,
 			"error_message": errMsg,
