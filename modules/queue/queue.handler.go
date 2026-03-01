@@ -86,10 +86,8 @@ func Create(c *fiber.Ctx) error {
 		}
 	}
 
-	// Normalize delay fields
-	// Delay can be used only when sending now AND is_use_delay = true
-	useDelay := req.IsSendNow && req.IsUseDelay
-	if !useDelay {
+	// Normalize delay fields based on IsUseDelay
+	if !req.IsUseDelay {
 		req.IsRandomDelay = false
 		req.DelaySec = 0
 		req.DelayStart = 0
@@ -276,10 +274,8 @@ func UpdateByID(c *fiber.Ctx) error {
 		}
 	}
 
-	// Normalize delay fields
-	// Delay can be used only when sending now AND is_use_delay = true
-	useDelay := req.IsSendNow && req.IsUseDelay
-	if !useDelay {
+	// Normalize delay fields based on IsUseDelay
+	if !req.IsUseDelay {
 		req.IsRandomDelay = false
 		req.DelaySec = 0
 		req.DelayStart = 0

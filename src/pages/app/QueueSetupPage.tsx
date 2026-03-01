@@ -280,7 +280,7 @@ export default function QueueSetupPage() {
           !isSendNow && sendLaterTime
             ? computeNextSendLaterISO(sendLaterTime)
             : undefined,
-        isUseDelay: isSendNow ? isUseDelay : false,
+        isUseDelay,
         isRandomDelay,
         delaySec: !isRandomDelay ? Number(delaySec || 0) : 0,
         delayStart: isRandomDelay ? Number(delayStart || 0) : 0,
