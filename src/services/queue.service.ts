@@ -71,12 +71,15 @@ export const queueService = {
     );
     return response.data;
   },
-  sendTestMessage: async (key: string, body: string, headers?: string) => {
-    const response = await satellite.post<Response<null>>(`/queue`, {
-      key,
-      body,
-      headers,
-    });
+  sendTestMessage: async (json: Record<string, unknown>) => {
+    const payload = {
+      key: json.key as string,
+      method: (json.method as string) ?? "POST",
+      query: json.query ? JSON.stringify(json.query) : undefined,
+      body: JSON.stringify(json.body),
+      headers: json.headers ? JSON.stringify(json.headers) : undefined,
+    };
+    const response = await satellite.post<Response<null>>(`/queue`, payload);
     return response.data;
   },
 };

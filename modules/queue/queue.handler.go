@@ -240,6 +240,8 @@ func PatchToggle(c *fiber.Ctx) error {
 
 type AddToMessageRequest struct {
 	Key     string  `json:"key"`
+	Method  string  `json:"method"`
+	Query   *string `json:"query,omitempty"`
 	Body    string  `json:"body"`
 	Headers *string `json:"headers,omitempty"`
 }
@@ -253,6 +255,9 @@ func AddToMessage(c *fiber.Ctx) error {
 	if req.Key == "" {
 		return dto.BadRequest(c, "Key is required", nil)
 	}
+	if req.Method == "" {
+		return dto.BadRequest(c, "Method is required", nil)
+	}
 	if req.Body == "" {
 		return dto.BadRequest(c, "Body is required", nil)
 	}
@@ -264,6 +269,7 @@ func AddToMessage(c *fiber.Ctx) error {
 
 	message := QueueMessage{
 		QueueID: queue.ID.String(),
+		Method:  req.Method,
 		Body:    req.Body,
 		Headers: req.Headers,
 		Status:  QueueMessageStatusPending,

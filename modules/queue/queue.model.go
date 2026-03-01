@@ -43,7 +43,9 @@ const (
 
 type QueueMessage struct {
 	ID           uuid.UUID `json:"id" gorm:"type:char(36);primaryKey"`
-	QueueID      string    `json:"queue_id" gorm:"foreignKey:Queue.ID;not null"`    // foreign key to Queue.ID
+	QueueID      string    `json:"queue_id" gorm:"foreignKey:Queue.ID;not null"` // foreign key to Queue.ID
+	Method       string    `json:"method" gorm:"default:POST"`
+	Query        *string   `json:"query,omitempty" gorm:"type:text;default:null"`   // JSON stringified (query params)
 	Headers      *string   `json:"headers,omitempty" gorm:"type:text;default:null"` // JSON stringified (extra headers)
 	Body         string    `json:"body" gorm:"type:text"`                           // JSON stringified
 	Status       string    `json:"status" gorm:"default:pending"`                   // pending, processing, completed, failed

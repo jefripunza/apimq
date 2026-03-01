@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Switch } from "./ui/switch";
 import {
@@ -36,7 +36,7 @@ export default function QueueCard({
   const isError = queue.status === "error";
 
   const [isCodeOpen, setIsCodeOpen] = useState(false);
-  const [jsonBody, setJsonBody] = useState("{}");
+  const [jsonBody, setJsonBody] = useState<Record<string, unknown>>({});
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState(false);
@@ -46,12 +46,13 @@ export default function QueueCard({
     setSendSuccess(false);
     setIsSending(true);
     try {
-      await queueService.sendTestMessage(queue.key, jsonBody);
+      jsonBody["key"] = queue.key;
+      await queueService.sendTestMessage(jsonBody);
       setSendSuccess(true);
       setTimeout(() => {
         setIsCodeOpen(false);
         setSendSuccess(false);
-        setJsonBody("{}");
+        setJsonBody({});
       }, 1500);
     } catch (err: unknown) {
       const msg =
@@ -62,6 +63,16 @@ export default function QueueCard({
       setIsSending(false);
     }
   };
+
+  useEffect(() => {
+    setJsonBody({
+      key: queue.key,
+      method: "POST",
+      query: {},
+      body: {},
+      headers: {},
+    });
+  }, [isCodeOpen, queue.key]);
 
   return (
     <div
@@ -109,8 +120,8 @@ export default function QueueCard({
                 </DialogHeader>
                 <div className="py-4">
                   <JsonEditor
-                    value={jsonBody}
-                    onChange={setJsonBody}
+                    value={JSON.stringify(jsonBody, null, 2)}
+                    onChange={(value) => setJsonBody(JSON.parse(value))}
                     height={250}
                   />
                   {sendError && (
