@@ -141,15 +141,33 @@ func (m *Manager) timingCheckerLoop() {
 				log.Printf("⏰ Queue %s has %d timing messages to check", q.Key, timingCount)
 			}
 
-			// Convert todayTarget to UTC for database comparison (created_at is stored in UTC)
-			todayTargetUTC := todayTarget.UTC()
-			log.Printf("⏰ Queue %s comparing: todayTarget(local)=%v, todayTarget(UTC)=%v",
-				q.Key, todayTarget.Format(time.RFC3339), todayTargetUTC.Format(time.RFC3339))
+			// Load timing messages and evaluate eligibility in Go to avoid DB timezone edge-cases.
+			messages := make([]queue.QueueMessage, 0)
+			if err := variable.Db.
+				Where("queue_id = ? AND status = ?", q.ID.String(), queue.QueueMessageStatusTiming).
+				Find(&messages).Error; err != nil {
+				log.Printf("⚠️  Timing checker: failed to load timing messages for queue %s: %v", q.Key, err)
+				continue
+			}
 
-			// Convert messages created at or before today's target time (use UTC for DB)
+			eligibleIDs := make([]string, 0)
+			for _, msg := range messages {
+				createdLocal := msg.CreatedAt.In(now.Location())
+				if createdLocal.Before(todayTarget) || createdLocal.Equal(todayTarget) {
+					eligibleIDs = append(eligibleIDs, msg.ID.String())
+				}
+			}
+
+			if len(eligibleIDs) == 0 {
+				if timingCount > 0 {
+					log.Printf("⏰ Queue %s: %d timing messages created after %v, waiting for tomorrow",
+						q.Key, timingCount, todayTarget.Format("15:04:05"))
+				}
+				continue
+			}
+
 			result := variable.Db.Model(&queue.QueueMessage{}).
-				Where("queue_id = ? AND status = ? AND created_at <= ?",
-					q.ID.String(), queue.QueueMessageStatusTiming, todayTargetUTC).
+				Where("id IN ?", eligibleIDs).
 				Update("status", queue.QueueMessageStatusPending)
 
 			if result.Error != nil {
@@ -157,10 +175,6 @@ func (m *Manager) timingCheckerLoop() {
 			} else if result.RowsAffected > 0 {
 				log.Printf("⏰ Timing checker: converted %d timing→pending messages for queue %s",
 					result.RowsAffected, q.Key)
-			} else if timingCount > 0 {
-				// Messages exist but weren't converted - they were created after today's target
-				log.Printf("⏰ Queue %s: %d timing messages created after %v (UTC), waiting for tomorrow",
-					q.Key, timingCount, todayTargetUTC.Format("15:04:05"))
 			}
 		}
 	}
