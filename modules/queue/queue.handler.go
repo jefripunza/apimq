@@ -215,27 +215,40 @@ func PatchToggle(c *fiber.Ctx) error {
 
 // ---------------------------------------------------- //
 
+type AddToMessageRequest struct {
+	Key     string  `json:"key"`
+	Body    string  `json:"body"`
+	Headers *string `json:"headers,omitempty"`
+}
+
 func AddToMessage(c *fiber.Ctx) error {
-	key := c.Params("key")
-	if key == "" {
-		return dto.BadRequest(c, "Key is required", nil)
-	}
-
-	var queue Queue
-	if err := variable.Db.Where("key = ?", key).First(&queue).Error; err != nil {
-		return dto.NotFound(c, "Queue not found", nil)
-	}
-
-	var req QueueMessage
+	var req AddToMessageRequest
 	if err := c.BodyParser(&req); err != nil {
 		return dto.BadRequest(c, "Invalid request body", nil)
 	}
 
+	if req.Key == "" {
+		return dto.BadRequest(c, "Key is required", nil)
+	}
 	if req.Body == "" {
 		return dto.BadRequest(c, "Body is required", nil)
 	}
 
-	// TODO: Add message to queue
+	var queue Queue
+	if err := variable.Db.Where("key = ?", req.Key).First(&queue).Error; err != nil {
+		return dto.NotFound(c, "Queue not found", nil)
+	}
 
-	return dto.OK(c, "Message added to queue successfully", nil)
+	message := QueueMessage{
+		QueueID: queue.ID.String(),
+		Body:    req.Body,
+		Headers: req.Headers,
+		Status:  QueueMessageStatusPending,
+	}
+
+	if err := variable.Db.Create(&message).Error; err != nil {
+		return dto.InternalServerError(c, "Failed to add message to queue", nil)
+	}
+
+	return dto.OK(c, "Message added to queue successfully", message)
 }

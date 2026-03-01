@@ -11,6 +11,7 @@ func Models() []interface{} {
 	return []interface{}{
 		&setting.Setting{},
 		&queue.Queue{},
+		&queue.QueueMessage{},
 	}
 }
 

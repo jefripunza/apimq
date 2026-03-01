@@ -1,8 +1,28 @@
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Switch } from "./ui/switch";
-import { Settings, Activity, ArrowUpRight, FileText } from "lucide-react";
+import {
+  Settings,
+  Activity,
+  ArrowUpRight,
+  FileText,
+  Code,
+  Loader2,
+  Send,
+} from "lucide-react";
 import { useQueueStore } from "@/stores/queueStore";
+import { queueService } from "@/services/queue.service";
 import type { Queue } from "@/types/queue";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import JsonEditor from "@/components/JsonEditor";
 
 export default function QueueCard({
   queue,
@@ -14,6 +34,34 @@ export default function QueueCard({
   const navigate = useNavigate();
   const toggleQueueEnabled = useQueueStore((s) => s.toggleEnabled);
   const isError = queue.status === "error";
+
+  const [isCodeOpen, setIsCodeOpen] = useState(false);
+  const [jsonBody, setJsonBody] = useState("{}");
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState("");
+  const [sendSuccess, setSendSuccess] = useState(false);
+
+  const handleSendTest = async () => {
+    setSendError("");
+    setSendSuccess(false);
+    setIsSending(true);
+    try {
+      await queueService.sendTestMessage(queue.key, jsonBody);
+      setSendSuccess(true);
+      setTimeout(() => {
+        setIsCodeOpen(false);
+        setSendSuccess(false);
+        setJsonBody("{}");
+      }, 1500);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? "Failed to send message";
+      setSendError(msg);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <div
@@ -39,7 +87,72 @@ export default function QueueCard({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center gap-2 pl-1">
-            {/* disini */}
+            <Dialog open={isCodeOpen} onOpenChange={setIsCodeOpen}>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-lg text-dark-400 hover:text-accent-400 hover:bg-dark-700/50 transition-all"
+                  title="Test message"
+                >
+                  <Code className="w-3.5 h-3.5" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Send Test Message</DialogTitle>
+                  <DialogDescription>
+                    Send a test JSON message to queue{" "}
+                    <span className="font-mono text-accent-400">
+                      {queue.key}
+                    </span>
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <JsonEditor
+                    value={jsonBody}
+                    onChange={setJsonBody}
+                    height={250}
+                  />
+                  {sendError && (
+                    <p className="mt-2 text-xs text-neon-red font-mono">
+                      {sendError}
+                    </p>
+                  )}
+                  {sendSuccess && (
+                    <p className="mt-2 text-xs text-neon-green font-mono">
+                      Message sent successfully!
+                    </p>
+                  )}
+                </div>
+                <DialogFooter>
+                  <button
+                    type="button"
+                    onClick={() => setIsCodeOpen(false)}
+                    className="px-4 py-2 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendTest}
+                    disabled={isSending}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
+                  >
+                    {isSending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Send
+                      </>
+                    )}
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             <Switch
               checked={queue.enabled}
               onCheckedChange={(checked) =>

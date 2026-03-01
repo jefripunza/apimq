@@ -70,4 +70,12 @@ export const queueService = {
     );
     return response.data;
   },
+  sendTestMessage: async (key: string, body: string, headers?: string) => {
+    const response = await satellite.post<Response<null>>(`/queue`, {
+      key,
+      body,
+      headers,
+    });
+    return response.data;
+  },
 };
