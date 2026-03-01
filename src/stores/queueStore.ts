@@ -10,6 +10,44 @@ import type { Queue } from "@/types/queue";
 import { safeJsonParse } from "@/utils/data";
 
 function mapQueueApiToItem(q: QueueApi): Queue {
+  const batchCount = q.batch_count ?? 1;
+  const schema = (q.schema ?? "").toLowerCase();
+  const schemaConfig = safeJsonParse<Record<string, unknown>>(
+    q.schema_config,
+    {},
+  );
+
+  let throughput_sec = "1";
+  if (schema === "delay") {
+    const random = Boolean((schemaConfig as { random?: unknown }).random);
+    if (!random) {
+      const sec = Number((schemaConfig as { sec?: unknown }).sec ?? 0);
+      throughput_sec = `${batchCount}/${Math.max(1, sec || 1)}s`;
+    } else {
+      const min = Number((schemaConfig as { min?: unknown }).min ?? 1);
+      const max = Number((schemaConfig as { max?: unknown }).max ?? min);
+      const a = Math.max(1, Math.min(min || 1, max || 1));
+      const b = Math.max(a, max || a);
+      throughput_sec = `${batchCount}/${a}-${b}s`;
+    }
+  } else if (schema === "timing") {
+    const datetime = String(
+      (schemaConfig as { datetime?: unknown }).datetime ?? "",
+    );
+    let date = datetime;
+    try {
+      const d = new Date(datetime);
+      if (!Number.isNaN(d.getTime())) {
+        date = d.toISOString().slice(0, 10).replaceAll("-", "/");
+      }
+    } catch {
+      // keep raw
+    }
+    throughput_sec = `${batchCount} on ${date}`;
+  } else {
+    throughput_sec = `${batchCount}/1s`;
+  }
+
   return {
     id: q.id,
     name: q.name,
@@ -18,18 +56,19 @@ function mapQueueApiToItem(q: QueueApi): Queue {
     enabled: q.enabled,
     messages: q.messages ?? 0,
     consumers: 0,
-    publishRate: 0,
+    batch_count: batchCount,
+    throughput_sec,
     deliverRate: 0,
     status: q.enabled ? "running" : "idle",
     origin: q.origin,
-    batchCount: q.batch_count,
+    batchCount: batchCount,
     timeout: q.timeout ?? 30,
     headers: safeJsonParse<Array<{ key: string; value: string }>>(
       q.headers,
       [],
     ),
     schema: q.schema,
-    schemaConfig: safeJsonParse<Record<string, unknown>>(q.schema_config, {}),
+    schemaConfig,
     errorTrace: safeJsonParse<Record<string, unknown>>(q.error_trace, {}),
     createdAt: q.created_at,
     updatedAt: q.updated_at,
@@ -112,8 +151,12 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
     try {
       const res = await queueService.create(payload);
       if (res.data) {
-        const created = mapQueueApiToItem(res.data);
-        set({ items: [created, ...get().items], isLoading: false });
+        const resp = await queueService.getAll();
+        if (resp.data) {
+          set({ items: resp.data.map(mapQueueApiToItem), isLoading: false });
+        } else {
+          set({ isLoading: false });
+        }
       } else {
         set({ isLoading: false });
       }

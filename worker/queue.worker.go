@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -17,6 +18,10 @@ import (
 )
 
 const debug = false
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // ─── worker entry per queue ─────────────────────────────────────────────────
 
@@ -214,7 +219,90 @@ func (m *Manager) runWorker(ctx context.Context, entry *workerEntry, queueID str
 			}
 
 			m.processMessage(&q, &msg)
+
+			delay := computeQueueDelay(&q)
+			if delay > 0 {
+				sleepOrCancel(ctx, delay)
+			}
 		}
+	}
+}
+
+func computeQueueDelay(q *queue.Queue) time.Duration {
+	if q == nil {
+		return 0
+	}
+	if strings.ToLower(strings.TrimSpace(q.Schema)) != "delay" {
+		return 0
+	}
+	if strings.TrimSpace(q.SchemaConfig) == "" {
+		return 0
+	}
+
+	var cfg map[string]interface{}
+	if err := json.Unmarshal([]byte(q.SchemaConfig), &cfg); err != nil {
+		return 0
+	}
+
+	random := asBool(cfg["random"])
+	if !random {
+		sec := asInt(cfg["sec"])
+		if sec <= 0 {
+			return 0
+		}
+		return time.Duration(sec) * time.Second
+	}
+
+	min := asInt(cfg["min"])
+	max := asInt(cfg["max"])
+	if min < 0 {
+		min = 0
+	}
+	if max < min {
+		max = min
+	}
+
+	sec := min
+	if max > min {
+		sec = rand.Intn(max-min+1) + min
+	}
+	if sec <= 0 {
+		return 0
+	}
+	return time.Duration(sec) * time.Second
+}
+
+func asBool(v interface{}) bool {
+	b, ok := v.(bool)
+	if ok {
+		return b
+	}
+	return false
+}
+
+func asInt(v interface{}) int {
+	switch x := v.(type) {
+	case float64:
+		return int(x)
+	case float32:
+		return int(x)
+	case int:
+		return x
+	case int64:
+		return int(x)
+	case int32:
+		return int(x)
+	case uint:
+		return int(x)
+	case uint64:
+		return int(x)
+	case uint32:
+		return int(x)
+	case json.Number:
+		i, _ := x.Int64()
+		return int(i)
+	default:
+		return 0
 	}
 }
 

@@ -221,7 +221,7 @@ export default function QueueCard({
       <div className="flex items-center justify-between pt-1 border-t border-dark-600/30">
         <div className="flex items-center gap-1 text-xs font-mono text-neon-green">
           <ArrowUpRight className="w-3 h-3" />
-          <span>{queue.publishRate}/s</span>
+          <span>{queue.throughput_sec}</span>
           <span className="text-dark-500 ml-1">throughput</span>
         </div>
         <div className="flex items-center gap-1 text-xs font-mono text-neon-cyan">

@@ -18,7 +18,8 @@ export type Queue = {
   enabled: boolean;
   messages: number;
   consumers: number;
-  publishRate: number;
+  batch_count: number;
+  throughput_sec: string;
   deliverRate: number;
   status: QueueStatus;
   origin?: string;
