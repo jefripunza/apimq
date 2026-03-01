@@ -107,6 +107,7 @@ func GetAll(c *fiber.Ctx) error {
 	if err := variable.Db.
 		Table("queue_messages").
 		Select("queue_id, COUNT(*) as count").
+		Where("status = ?", "pending").
 		Group("queue_id").
 		Scan(&counts).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to get queue message counts", nil)
