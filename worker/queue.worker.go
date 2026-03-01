@@ -205,6 +205,13 @@ func (m *Manager) runWorker(ctx context.Context, entry *workerEntry, queueID str
 			log.Printf("⚙️  Worker queueID=%s config key=%s enabled=%v origin=%s", queueID, q.Key, q.Enabled, q.Origin)
 		}
 
+		// Compute delay once per batch for logging
+		delay := computeQueueDelay(&q)
+		if debug {
+			log.Printf("⏱️  Queue %s delay config: IsSendNow=%v IsUseDelay=%v IsRandomDelay=%v DelaySec=%d DelayStart=%d DelayEnd=%d → computed=%v",
+				q.Key, q.IsSendNow, q.IsUseDelay, q.IsRandomDelay, q.DelaySec, q.DelayStart, q.DelayEnd, delay)
+		}
+
 		for _, msg := range messages {
 			select {
 			case <-ctx.Done():
@@ -220,6 +227,7 @@ func (m *Manager) runWorker(ctx context.Context, entry *workerEntry, queueID str
 
 			m.processMessage(&q, &msg)
 
+			// Apply delay AFTER processing each message
 			delay := computeQueueDelay(&q)
 			if delay > 0 {
 				sleepOrCancel(ctx, delay)
@@ -400,7 +408,7 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		respStr = respStr[:20000]
 	}
 
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+	if resp.StatusCode >= 100 && resp.StatusCode < 400 {
 		// success
 		if debug {
 			log.Printf("✅ Message id=%s success HTTP %d", msg.ID.String(), resp.StatusCode)

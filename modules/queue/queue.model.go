@@ -61,6 +61,8 @@ type QueueMessage struct {
 	ErrorMessage *string   `json:"error_message,omitempty" gorm:"type:text;default:null"`
 	IsAck        bool      `json:"is_ack" gorm:"default:false"`
 	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime"`
+	ProcessedAt  time.Time `json:"processed_at" gorm:"default:null"`
+	FinishedAt   time.Time `json:"finished_at" gorm:"default:null"`
 }
 
 func (q *QueueMessage) BeforeCreate(tx *gorm.DB) error {

@@ -225,8 +225,12 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
     try {
       const res = await queueService.toggleEnabled(key, enabled);
       if (res.data) {
-        const updated = mapQueueApiToItem(res.data);
-        set({ items: get().items.map((q) => (q.key === key ? updated : q)) });
+        const nextEnabled = res.data.enabled ?? enabled;
+        set({
+          items: get().items.map((q) =>
+            q.key === key ? { ...q, enabled: nextEnabled } : q,
+          ),
+        });
       }
       return true;
     } catch (err: unknown) {
