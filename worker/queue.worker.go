@@ -19,10 +19,6 @@ import (
 
 const debug = false
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 // ─── worker entry per queue ─────────────────────────────────────────────────
 
 type workerEntry struct {

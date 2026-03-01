@@ -19,18 +19,6 @@ import (
 
 var dbMu sync.RWMutex
 
-func init() {
-	var err error
-	variable.Db, err = OpenDB()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("✅ Database initialized")
-
-	modules.SeedAll(variable.Db)
-	go keepDBAlive()
-}
-
 func keepDBAlive() {
 	provider, _, _, _, _, _ := environment.GetDatabase()
 	provider = strings.ToLower(provider)
