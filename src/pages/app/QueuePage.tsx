@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { uid } from "@/utils/random";
 import { formatDate } from "@/utils/datetime";
 import QueueCard from "@/components/QueueCard";
+import JsonEditor from "@/components/JsonEditor";
 import type { HeaderEntry, KeyStatus, Queue } from "@/types/queue";
 import type { QueueMessageApi } from "@/services/queue.service";
 import { Loader2, RefreshCw, Edit } from "lucide-react";
@@ -286,9 +287,13 @@ export default function QueuePage() {
   const handleOpenEdit = (msg: QueueMessageApi) => {
     setEditingMessage(msg);
     setEditMethod(msg.method || "POST");
-    setEditQuery(msg.query || "");
-    setEditBody(msg.body || "");
-    setEditHeaders(msg.headers || "");
+    setEditQuery(
+      JSON.stringify(JSON.parse(msg.query as string) || {}, null, 2),
+    );
+    setEditBody(JSON.stringify(JSON.parse(msg.body as string) || {}, null, 2));
+    setEditHeaders(
+      JSON.stringify(JSON.parse(msg.headers as string) || {}, null, 2),
+    );
     setEditError("");
     setIsEditOpen(true);
   };
@@ -310,9 +315,9 @@ export default function QueuePage() {
     try {
       const payload = {
         method: editMethod,
-        query: editQuery || undefined,
+        query: editQuery.trim() === "" ? undefined : editQuery,
         body: editBody,
-        headers: editHeaders || undefined,
+        headers: editHeaders.trim() === "" ? undefined : editHeaders,
       };
       const success = await updateMessage(editingMessage.id, payload);
       if (success) {
@@ -882,50 +887,47 @@ export default function QueuePage() {
               <label className="block text-sm font-medium text-dark-200 mb-1.5">
                 Method
               </label>
-              <input
-                type="text"
+              <select
                 value={editMethod}
                 onChange={(e) => setEditMethod(e.target.value)}
                 className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                placeholder="POST"
                 required
-              />
+              >
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+                <option value="DELETE">DELETE</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-1.5">
                 Query (JSON)
               </label>
-              <textarea
+              <JsonEditor
                 value={editQuery}
-                onChange={(e) => setEditQuery(e.target.value)}
-                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                placeholder='{"key": "value"}'
-                rows={3}
+                onChange={setEditQuery}
+                height={160}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-1.5">
                 Body (JSON)
               </label>
-              <textarea
+              <JsonEditor
                 value={editBody}
-                onChange={(e) => setEditBody(e.target.value)}
-                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                placeholder='{"data": "value"}'
-                rows={5}
-                required
+                onChange={setEditBody}
+                height={220}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-1.5">
                 Headers (JSON)
               </label>
-              <textarea
+              <JsonEditor
                 value={editHeaders}
-                onChange={(e) => setEditHeaders(e.target.value)}
-                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                placeholder='{"Content-Type": "application/json"}'
-                rows={3}
+                onChange={setEditHeaders}
+                height={160}
               />
             </div>
             {editError && (

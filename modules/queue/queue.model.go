@@ -60,6 +60,7 @@ type QueueMessage struct {
 	Response     *string   `json:"response,omitempty" gorm:"type:text;default:null"`
 	ErrorMessage *string   `json:"error_message,omitempty" gorm:"type:text;default:null"`
 	IsAck        bool      `json:"is_ack" gorm:"default:false"`
+	ReferenceID  *string   `json:"reference_id,omitempty" gorm:"type:char(36);default:null"`
 	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime"`
 	ProcessedAt  time.Time `json:"processed_at" gorm:"default:null"`
 	FinishedAt   time.Time `json:"finished_at" gorm:"default:null"`
