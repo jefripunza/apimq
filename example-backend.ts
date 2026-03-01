@@ -3,6 +3,8 @@ const server = Bun.serve({
   port: 4000,
   async fetch(request) {
     console.log("-------------------------------------------------------");
+    const now = new Date();
+    console.log(`Now: ${now.toLocaleString()}`);
 
     const url = new URL(request.url);
     const query = Object.fromEntries(url.searchParams.entries());

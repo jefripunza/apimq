@@ -40,14 +40,20 @@ export default function QueueCard({
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState(false);
+  const [sendCount, setSendCount] = useState("1");
 
   const handleSendTest = async () => {
     setSendError("");
     setSendSuccess(false);
     setIsSending(true);
     try {
+      const n = Math.max(1, Number(sendCount) || 1);
       jsonBody["key"] = queue.key;
-      await queueService.sendTestMessage(jsonBody);
+
+      for (let i = 0; i < n; i += 1) {
+        await queueService.sendTestMessage(jsonBody);
+      }
+
       setSendSuccess(true);
       setTimeout(() => {
         setIsCodeOpen(false);
@@ -72,6 +78,7 @@ export default function QueueCard({
       body: {},
       headers: {},
     });
+    setSendCount("1");
   }, [isCodeOpen, queue.key]);
 
   return (
@@ -119,6 +126,19 @@ export default function QueueCard({
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                      Count (N)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={sendCount}
+                      onChange={(e) => setSendCount(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                      required
+                    />
+                  </div>
                   <JsonEditor
                     value={JSON.stringify(jsonBody, null, 2)}
                     onChange={(value) => setJsonBody(JSON.parse(value))}
