@@ -147,6 +147,7 @@ func GetAll(c *fiber.Ctx) error {
 	if err := variable.Db.
 		Table("queue_messages").
 		Select("queue_id, status, COUNT(*) as count").
+		Where("status IN ?", []string{QueueMessageStatusTiming, QueueMessageStatusPending}).
 		Group("queue_id, status").
 		Scan(&counts).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to get queue message counts", nil)
@@ -188,9 +189,11 @@ func GetAll(c *fiber.Ctx) error {
 	failedByQueueID := make(map[string]int64)
 	for _, row := range counts {
 		switch row.Status {
+		case QueueMessageStatusTiming:
+			pendingByQueueID[row.QueueID] += row.Count
 		case QueueMessageStatusPending:
+			pendingByQueueID[row.QueueID] += row.Count
 		}
-		pendingByQueueID[row.QueueID] = row.Count
 	}
 	for _, row := range completedCounts {
 		completedByQueueID[row.QueueID] = row.Count

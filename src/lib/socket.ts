@@ -8,6 +8,8 @@ export function getSocket(): Socket {
     socket = io(HOST_API, {
       transports: ["websocket", "polling"],
       autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
     });
   }
   return socket;
