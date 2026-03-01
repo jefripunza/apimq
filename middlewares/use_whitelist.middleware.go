@@ -43,6 +43,10 @@ func UseWhitelist(c *fiber.Ctx) error {
 	origin := c.Get("Origin")
 	host := c.Hostname()
 
+	if len(entries) == 0 {
+		return c.Next()
+	}
+
 	for _, entry := range entries {
 		switch entry.Type {
 		case "ip":
