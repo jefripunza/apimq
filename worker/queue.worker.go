@@ -153,14 +153,26 @@ func (m *Manager) timingCheckerLoop() {
 			eligibleIDs := make([]string, 0)
 			for _, msg := range messages {
 				createdLocal := msg.CreatedAt.In(now.Location())
-				if createdLocal.Before(todayTarget) || createdLocal.Equal(todayTarget) {
+
+				// Each message runs at the next occurrence of scheduled HH:mm:ss
+				// after its creation time.
+				nextRun := time.Date(
+					createdLocal.Year(), createdLocal.Month(), createdLocal.Day(),
+					scheduledHour, scheduledMin, scheduledSec, 0,
+					now.Location(),
+				)
+				if createdLocal.After(nextRun) {
+					nextRun = nextRun.Add(24 * time.Hour)
+				}
+
+				if !now.Before(nextRun) {
 					eligibleIDs = append(eligibleIDs, msg.ID.String())
 				}
 			}
 
 			if len(eligibleIDs) == 0 {
 				if timingCount > 0 {
-					log.Printf("⏰ Queue %s: %d timing messages created after %v, waiting for tomorrow",
+					log.Printf("⏰ Queue %s: no due timing messages yet (total=%d, schedule=%v)",
 						q.Key, timingCount, todayTarget.Format("15:04:05"))
 				}
 				continue

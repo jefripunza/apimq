@@ -400,7 +400,7 @@ func AddToMessage(c *fiber.Ctx) error {
 
 	// Determine initial status based on queue timing config
 	initialStatus := QueueMessageStatusPending
-	if !queue.IsSendNow && queue.SendLaterTime != nil && queue.SendLaterTime.After(time.Now()) {
+	if !queue.IsSendNow && queue.SendLaterTime != nil {
 		initialStatus = QueueMessageStatusTiming
 	}
 
