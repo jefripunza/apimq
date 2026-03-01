@@ -55,14 +55,15 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	var s setting.Setting
-	if err := variable.Db.Where("key = ?", "password").First(&s).Error; err != nil {
-		return dto.Unauthorized(c, "Invalid password", nil)
+	if err := variable.Db.Where("key = ?", "auth_password").First(&s).Error; err != nil {
+		return dto.Unauthorized(c, "Invalid password (1)", nil)
 	}
 
 	// compare MD5 hash
 	hash := fmt.Sprintf("%x", md5.Sum([]byte(req.Password)))
+	// fmt.Printf("Req Password: %s | Now Password: %s | Hash: %s\n", req.Password, s.Value, hash)
 	if hash != s.Value {
-		return dto.Unauthorized(c, "Invalid password", nil)
+		return dto.Unauthorized(c, "Invalid password (2)", nil)
 	}
 
 	token, err := GenerateToken()

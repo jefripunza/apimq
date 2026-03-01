@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { Eye, EyeOff, Terminal, Zap, Lock } from "lucide-react";
+import { useNavigate } from "react-router";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const login = useAuthStore((s) => s.login);
+  const { login } = useAuthStore();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -16,7 +19,9 @@ export default function LoginPage() {
 
     try {
       const response = await login(password);
-      if (!response.success) {
+      if (response.success) {
+        navigate("/app/dashboard", { replace: true });
+      } else {
         setError(response.message || "Login failed");
       }
     } catch (err: unknown) {

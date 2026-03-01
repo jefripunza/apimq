@@ -28,7 +28,10 @@ export default function SettingPage() {
 
     setIsSaving(true);
     try {
-      const res = await settingService.setNewPassword(newPassword);
+      const res = await settingService.setNewPassword(
+        currentPassword,
+        newPassword,
+      );
       setSaveType("success");
       setSaveMsg(res.message || "Password changed successfully.");
       setCurrentPassword("");

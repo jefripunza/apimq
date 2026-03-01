@@ -3,10 +3,11 @@ package setting
 import (
 	"apimq/dto"
 	"apimq/variable"
+	"crypto/md5"
 	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func All(c *fiber.Ctx) error {
@@ -24,31 +25,43 @@ func All(c *fiber.Ctx) error {
 }
 
 func Set(c *fiber.Ctx) error {
-	// Parse multipart form
-	form, err := c.MultipartForm()
-	if err != nil {
-		// Try JSON body fallback
+	contentType := strings.ToLower(c.Get("Content-Type"))
+	isMultipart := strings.Contains(contentType, "multipart/form-data")
+
+	// JSON / urlencoded-like
+	if !isMultipart {
 		var bodies map[string]string
 		if err := c.BodyParser(&bodies); err != nil {
 			return dto.BadRequest(c, "Invalid request body", nil)
 		}
+
 		for key, value := range bodies {
 			var s Setting
 			if err := variable.Db.Where("key = ?", key).First(&s).Error; err != nil {
-				return dto.NotFound(c, "Setting not found", nil)
+				return dto.NotFound(c, fmt.Sprintf("Setting not found: %s", key), nil)
 			}
-			oldValue := s.Value
-			if key == "auth_password" && value != oldValue {
-				hash, err := bcrypt.GenerateFromPassword([]byte(value), 10)
-				if err == nil {
-					token := string(hash)[1:]
-					c.Set("x-new-token", token)
+			last_value := s.Value
+			// fmt.Printf("Key: %s | Last Value: %s | Value: %s\n", key, last_value, fmt.Sprintf("%x", md5.Sum([]byte(value))))
+
+			if key == "auth_password" {
+				last_password := c.Get("X-Last-Password")
+				if last_password != "" && fmt.Sprintf("%x", md5.Sum([]byte(last_password))) != last_value {
+					return dto.BadRequest(c, "Current password is incorrect", nil)
 				}
+				value = fmt.Sprintf("%x", md5.Sum([]byte(value)))
 			}
+
 			s.Value = value
 			variable.Db.Save(&s)
 		}
+
 		return dto.OK(c, "Setting updated successfully!", nil)
+	}
+
+	// multipart/form-data
+	form, err := c.MultipartForm()
+	if err != nil {
+		return dto.BadRequest(c, "Invalid multipart form", nil)
 	}
 
 	// Handle file uploads
@@ -65,7 +78,6 @@ func Set(c *fiber.Ctx) error {
 				return dto.NotFound(c, fmt.Sprintf("Setting not found: %s", fieldname), nil)
 			}
 
-			// Save file
 			filename := file.Filename
 			dst := uploadsPath + "/" + filename
 			if err := c.SaveFile(file, dst); err != nil {
@@ -84,18 +96,16 @@ func Set(c *fiber.Ctx) error {
 				continue
 			}
 			value := values[0]
+
 			var s Setting
 			if err := variable.Db.Where("key = ?", key).First(&s).Error; err != nil {
-				continue
+				return dto.NotFound(c, fmt.Sprintf("Setting not found: %s", key), nil)
 			}
-			oldValue := s.Value
-			if key == "auth_password" && value != oldValue {
-				hash, err := bcrypt.GenerateFromPassword([]byte(value), 10)
-				if err == nil {
-					token := string(hash)[1:]
-					c.Set("x-new-token", token)
-				}
+
+			if key == "auth_password" {
+				value = fmt.Sprintf("%x", md5.Sum([]byte(value)))
 			}
+
 			s.Value = value
 			variable.Db.Save(&s)
 		}
