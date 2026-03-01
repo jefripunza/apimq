@@ -56,6 +56,7 @@ export default function QueueSetupPage() {
   // schema
   const [schema, setSchema] = useState<SchemaType>("");
   const [batchCount, setBatchCount] = useState("1");
+  const [timeout, setTimeout] = useState("30");
   // delay sub-fields
   const [delayRandom, setDelayRandom] = useState(false);
   const [delaySec, setDelaySec] = useState("");
@@ -85,6 +86,7 @@ export default function QueueSetupPage() {
           key?: string;
           origin?: string;
           batchCount?: string;
+          timeout?: string;
           headers?: Array<{ key: string; value: string }>;
           schema?: SchemaType;
           delayRandom?: boolean;
@@ -105,6 +107,8 @@ export default function QueueSetupPage() {
 
     if (typeof prefill.batchCount === "string")
       setBatchCount(prefill.batchCount);
+
+    if (typeof prefill.timeout === "string") setTimeout(prefill.timeout);
 
     if (Array.isArray(prefill.headers)) {
       setHeaders(
@@ -149,6 +153,7 @@ export default function QueueSetupPage() {
       setKey(existing.key ?? "");
       setOrigin(existing.origin ?? "");
       setBatchCount(String(existing.batchCount ?? 1));
+      setTimeout(String(existing.timeout ?? 30));
       setHeaders(
         (existing.headers ?? []).map((h) => ({
           id: uid(),
@@ -198,6 +203,7 @@ export default function QueueSetupPage() {
       setKey(q.key ?? "");
       setOrigin(q.origin ?? "");
       setBatchCount(String(q.batchCount ?? 1));
+      setTimeout(String(q.timeout ?? 30));
       setHeaders(
         (q.headers ?? []).map((h) => ({
           id: uid(),
@@ -288,6 +294,7 @@ export default function QueueSetupPage() {
         name: name.trim(),
         origin: origin.trim(),
         batchCount: Number(batchCount) || 1,
+        timeout: Number(timeout) || 30,
         headers: headers
           .filter((h) => h.key.trim())
           .map((h) => ({ key: h.key.trim(), value: h.value.trim() })),
@@ -507,21 +514,40 @@ export default function QueueSetupPage() {
         {/* Batch */}
         <div className="bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4">
           <SectionTitle>Batch</SectionTitle>
-          <div>
-            <Label required>Batch Count</Label>
-            <Input
-              type="number"
-              min={1}
-              value={batchCount}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setBatchCount(e.target.value)
-              }
-              placeholder="1"
-              required
-            />
-            <p className="text-[11px] text-dark-400 font-mono mt-1">
-              Number of messages to deliver per run.
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label required>Batch Count</Label>
+              <Input
+                type="number"
+                min={1}
+                value={batchCount}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setBatchCount(e.target.value)
+                }
+                placeholder="1"
+                required
+              />
+              <p className="text-[11px] text-dark-400 font-mono mt-1">
+                Number of messages to deliver per run.
+              </p>
+            </div>
+
+            <div>
+              <Label required>Timeout (sec)</Label>
+              <Input
+                type="number"
+                min={1}
+                value={timeout}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setTimeout(e.target.value)
+                }
+                placeholder="30"
+                required
+              />
+              <p className="text-[11px] text-dark-400 font-mono mt-1">
+                HTTP request timeout.
+              </p>
+            </div>
           </div>
         </div>
 

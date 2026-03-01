@@ -237,24 +237,31 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		log.Printf("⚠️  Failed updating status=processing message id=%s err=%v", msg.ID.String(), err)
 	}
 
-	// build URL
-	targetURL := strings.TrimRight(q.Origin, "/")
+	// build URL (merge origin query + message query)
+	origin := strings.TrimSpace(q.Origin)
+	parsedURL, err := url.Parse(origin)
+	if err != nil {
+		errMsg := fmt.Sprintf("invalid origin URL: %v", err)
+		log.Printf("❌ Message id=%s invalid origin=%q err=%s", msg.ID.String(), origin, errMsg)
+		variable.Db.Model(msg).Updates(map[string]interface{}{
+			"status":        queue.QueueMessageStatusFailed,
+			"error_message": errMsg,
+		})
+		return
+	}
 
-	// append query params if present
 	if msg.Query != nil && *msg.Query != "" {
 		var queryParams map[string]interface{}
 		if err := json.Unmarshal([]byte(*msg.Query), &queryParams); err == nil && len(queryParams) > 0 {
-			params := url.Values{}
+			qv := parsedURL.Query()
 			for k, v := range queryParams {
-				params.Set(k, fmt.Sprintf("%v", v))
+				qv.Set(k, fmt.Sprintf("%v", v))
 			}
-			if strings.Contains(targetURL, "?") {
-				targetURL += "&" + params.Encode()
-			} else {
-				targetURL += "?" + params.Encode()
-			}
+			parsedURL.RawQuery = qv.Encode()
 		}
 	}
+
+	targetURL := parsedURL.String()
 
 	// build request
 	method := strings.ToUpper(msg.Method)
@@ -286,6 +293,9 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
+	// override User-Agent
+	req.Header.Set("User-Agent", "ApiMQ/1.0")
+
 	// merge queue-level headers
 	if q.Headers != "" {
 		var queueHeaders []map[string]string
@@ -300,16 +310,20 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 
 	// merge message-level headers (override queue headers)
 	if msg.Headers != nil && *msg.Headers != "" {
-		var msgHeaders map[string]string
+		var msgHeaders map[string]interface{}
 		if err := json.Unmarshal([]byte(*msg.Headers), &msgHeaders); err == nil {
 			for k, v := range msgHeaders {
-				req.Header.Set(k, v)
+				req.Header.Set(k, fmt.Sprintf("%v", v))
 			}
 		}
 	}
 
 	// execute request
-	client := &http.Client{Timeout: 30 * time.Second}
+	timeoutSec := q.Timeout
+	if timeoutSec <= 0 {
+		timeoutSec = 30
+	}
+	client := &http.Client{Timeout: time.Duration(timeoutSec) * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		errMsg := fmt.Sprintf("request failed: %v", err)

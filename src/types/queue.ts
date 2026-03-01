@@ -23,6 +23,7 @@ export type Queue = {
   status: QueueStatus;
   origin?: string;
   batchCount?: number;
+  timeout?: number;
   headers?: Array<{ key: string; value: string }>;
   schema?: string;
   schemaConfig?: Record<string, unknown>;

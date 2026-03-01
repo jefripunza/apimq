@@ -10,6 +10,7 @@ export interface QueueApi {
   messages: number;
   origin: string;
   batch_count: number;
+  timeout: number;
   headers: string;
   schema: string;
   schema_config: string;
@@ -24,6 +25,7 @@ export type CreateQueuePayload = {
   color?: string;
   origin: string;
   batchCount?: number;
+  timeout?: number;
   headers?: Array<{ key: string; value: string }>;
   schema?: string;
   schemaConfig?: Record<string, unknown>;

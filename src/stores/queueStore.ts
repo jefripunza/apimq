@@ -23,6 +23,7 @@ function mapQueueApiToItem(q: QueueApi): Queue {
     status: q.enabled ? "running" : "idle",
     origin: q.origin,
     batchCount: q.batch_count,
+    timeout: q.timeout ?? 30,
     headers: safeJsonParse<Array<{ key: string; value: string }>>(
       q.headers,
       [],

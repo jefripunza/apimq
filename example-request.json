@@ -1,0 +1,13 @@
+{
+  "key": "test",
+  "method": "POST",
+  "query": {
+    "ok": 1
+  },
+  "body": {
+    "nice": 2
+  },
+  "headers": {
+    "X-Api-Key": 3
+  }
+}

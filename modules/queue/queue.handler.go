@@ -15,6 +15,7 @@ type CreateQueueRequest struct {
 	Color        string                 `json:"color"`
 	Origin       string                 `json:"origin"`
 	BatchCount   int                    `json:"batchCount"`
+	Timeout      int                    `json:"timeout"`
 	Headers      []map[string]string    `json:"headers"`
 	Schema       string                 `json:"schema"`
 	SchemaConfig map[string]interface{} `json:"schemaConfig,omitempty"`
@@ -26,6 +27,7 @@ type UpdateQueueRequest struct {
 	Color        string                 `json:"color"`
 	Origin       string                 `json:"origin"`
 	BatchCount   int                    `json:"batchCount"`
+	Timeout      int                    `json:"timeout"`
 	Headers      []map[string]string    `json:"headers"`
 	Schema       string                 `json:"schema"`
 	SchemaConfig map[string]interface{} `json:"schemaConfig,omitempty"`
@@ -70,6 +72,7 @@ func Create(c *fiber.Ctx) error {
 		Color:        req.Color,
 		Origin:       req.Origin,
 		BatchCount:   req.BatchCount,
+		Timeout:      req.Timeout,
 		Headers:      string(headersJSON),
 		Schema:       req.Schema,
 		SchemaConfig: string(schemaConfigJSON),
@@ -79,6 +82,9 @@ func Create(c *fiber.Ctx) error {
 
 	if req.BatchCount == 0 {
 		queue.BatchCount = 1
+	}
+	if req.Timeout <= 0 {
+		queue.Timeout = 30
 	}
 	if req.Color == "" {
 		queue.Color = "#6366f1"
@@ -173,6 +179,7 @@ func Update(c *fiber.Ctx) error {
 	queue.Color = req.Color
 	queue.Origin = req.Origin
 	queue.BatchCount = req.BatchCount
+	queue.Timeout = req.Timeout
 	queue.Headers = string(headersJSON)
 	queue.Schema = req.Schema
 	queue.SchemaConfig = string(schemaConfigJSON)
@@ -180,6 +187,9 @@ func Update(c *fiber.Ctx) error {
 
 	if req.BatchCount == 0 {
 		queue.BatchCount = 1
+	}
+	if req.Timeout <= 0 {
+		queue.Timeout = 30
 	}
 	if req.Color == "" {
 		queue.Color = "#6366f1"
@@ -271,6 +281,7 @@ func AddToMessage(c *fiber.Ctx) error {
 	message := QueueMessage{
 		QueueID: queue.ID.String(),
 		Method:  req.Method,
+		Query:   req.Query,
 		Body:    req.Body,
 		Headers: req.Headers,
 		Status:  QueueMessageStatusPending,

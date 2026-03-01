@@ -56,6 +56,7 @@ export default function QueuePage() {
   const [newKey, setNewKey] = useState("");
   const [newOrigin, setNewOrigin] = useState("");
   const [newBatchCount, setNewBatchCount] = useState("1");
+  const [newTimeout, setNewTimeout] = useState("30");
   const [newHeaders, setNewHeaders] = useState<HeaderEntry[]>([]);
   const [newSchema, setNewSchema] = useState<SchemaType>("");
   const [newDelayRandom, setNewDelayRandom] = useState(false);
@@ -74,6 +75,7 @@ export default function QueuePage() {
     setNewKey("");
     setNewOrigin("");
     setNewBatchCount("1");
+    setNewTimeout("30");
     setNewHeaders([]);
     setNewSchema("");
     setNewDelayRandom(false);
@@ -144,6 +146,7 @@ export default function QueuePage() {
       key: newKey,
       origin: newOrigin,
       batchCount: Number(newBatchCount || 1),
+      timeout: Number(newTimeout || 30),
       headers: newHeaders
         .filter((h) => h.key.trim())
         .map((h) => ({ key: h.key.trim(), value: h.value.trim() })),
@@ -270,6 +273,21 @@ export default function QueuePage() {
                     value={newBatchCount}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       setNewBatchCount(e.target.value)
+                    }
+                    className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                    Timeout (sec)<span className="text-neon-red ml-1">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={newTimeout}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setNewTimeout(e.target.value)
                     }
                     className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
                     required
