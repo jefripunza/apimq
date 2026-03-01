@@ -10,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(api fiber.Router) {
+func SetupRoutes(app *fiber.App, api fiber.Router) {
 	// /api
 	example.RegisterRoutes(api)
 
@@ -26,4 +26,5 @@ func SetupRoutes(api fiber.Router) {
 	// /api/queue (protected)
 	queueProtected := api.Group("/queue", middlewares.UseToken)
 	queue.RegisterRoutes(queueProtected)
+	queue.RegisterPublicRoutes(app)
 }

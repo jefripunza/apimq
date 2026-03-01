@@ -212,3 +212,31 @@ func PatchToggle(c *fiber.Ctx) error {
 
 	return dto.OK(c, "Queue toggled successfully", queue)
 }
+
+// ---------------------------------------------------- //
+
+// AddToMessage - POST /api/queue/:key
+func AddToMessage(c *fiber.Ctx) error {
+	key := c.Params("key")
+	if key == "" {
+		return dto.BadRequest(c, "Key is required", nil)
+	}
+
+	var queue Queue
+	if err := variable.Db.Where("key = ?", key).First(&queue).Error; err != nil {
+		return dto.NotFound(c, "Queue not found", nil)
+	}
+
+	var req QueueMessage
+	if err := c.BodyParser(&req); err != nil {
+		return dto.BadRequest(c, "Invalid request body", nil)
+	}
+
+	if req.Body == "" {
+		return dto.BadRequest(c, "Body is required", nil)
+	}
+
+	// TODO: Add message to queue
+
+	return dto.OK(c, "Message added to queue successfully", nil)
+}

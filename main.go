@@ -60,7 +60,7 @@ func main() {
 	app.Use(func(c *fiber.Ctx) error {
 		path := c.Path()
 		// skip API and backend routes
-		skips := []string{"/api", "/socket.io", "/subscribe", "/icon", "/file", "/upload", "/ws", "/webhook"}
+		skips := []string{"/api", "/queue", "/socket.io", "/subscribe", "/icon", "/file", "/upload", "/ws", "/webhook"}
 		for _, skip := range skips {
 			if strings.HasPrefix(path, skip) {
 				return c.Next()
@@ -98,10 +98,10 @@ func main() {
 	app.Static("/upload", variable.UploadsPath)
 
 	api := app.Group("/api")
-	modules.SetupRoutes(api)
+	modules.SetupRoutes(app, api)
 
 	// Catch-all "joke" routes (matching Express behavior)
-	jokeRoutes := []string{"/api", "/api/route", "/_next", "/_next/server", "/app"}
+	jokeRoutes := []string{"/api/route", "/_next", "/_next/server", "/app"}
 	for _, route := range jokeRoutes {
 		app.Use(route, func(c *fiber.Ctx) error {
 			return c.JSON(fiber.Map{"status": "BASTARD", "message": "You are a bastard!"})
