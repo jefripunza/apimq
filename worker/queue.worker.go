@@ -87,17 +87,31 @@ func (m *Manager) timingCheckerLoop() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		// Find all queues with IsSendNow=false and SendLaterTime <= now
+		// Find all queues with IsSendNow=false and SendLaterTime IS NOT NULL
 		var queues []queue.Queue
 		now := time.Now()
 		if err := variable.Db.
-			Where("is_send_now = ? AND send_later_time IS NOT NULL AND send_later_time <= ?", false, now).
+			Where("is_send_now = ? AND send_later_time IS NOT NULL", false).
 			Find(&queues).Error; err != nil {
 			log.Printf("⚠️  Timing checker: failed to fetch scheduled queues: %v", err)
 			continue
 		}
 
+		// Check each queue's scheduled time manually
 		for _, q := range queues {
+			if q.SendLaterTime == nil {
+				continue
+			}
+
+			// Compare times - SendLaterTime must be AFTER now to still be scheduled
+			if q.SendLaterTime.After(now) {
+				log.Printf("⏰ Queue %s still scheduled: now=%v, scheduled=%v (waiting %v)",
+					q.Key, now.Format(time.RFC3339), q.SendLaterTime.Format(time.RFC3339), q.SendLaterTime.Sub(now))
+				continue
+			}
+
+			log.Printf("⏰ Queue %s time reached: now=%v, scheduled=%v",
+				q.Key, now.Format(time.RFC3339), q.SendLaterTime.Format(time.RFC3339))
 			// Convert all 'timing' messages for this queue to 'pending'
 			result := variable.Db.Model(&queue.QueueMessage{}).
 				Where("queue_id = ? AND status = ?", q.ID.String(), queue.QueueMessageStatusTiming).

@@ -189,8 +189,8 @@ func GetAll(c *fiber.Ctx) error {
 	for _, row := range counts {
 		switch row.Status {
 		case QueueMessageStatusPending:
-			pendingByQueueID[row.QueueID] = row.Count
 		}
+		pendingByQueueID[row.QueueID] = row.Count
 	}
 	for _, row := range completedCounts {
 		completedByQueueID[row.QueueID] = row.Count
