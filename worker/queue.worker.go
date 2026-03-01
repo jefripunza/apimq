@@ -401,7 +401,18 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		}
 	} else {
 		// HTTP error
-		errMsg := fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(respBody))
+		// Prefer JSON {message: "..."} if response body is JSON
+		errDetail := respStr
+		var parsed map[string]interface{}
+		if json.Unmarshal(respBody, &parsed) == nil {
+			if v, ok := parsed["message"]; ok {
+				errDetail = fmt.Sprintf("%v", v)
+			} else if v, ok := parsed["error"]; ok {
+				errDetail = fmt.Sprintf("%v", v)
+			}
+		}
+
+		errMsg := fmt.Sprintf("HTTP %d: %s", resp.StatusCode, errDetail)
 		if len(errMsg) > 2000 {
 			errMsg = errMsg[:2000]
 		}
