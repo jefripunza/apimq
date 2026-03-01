@@ -1,33 +1,9 @@
 import { useState } from "react";
 import { Key, Eye, EyeOff } from "lucide-react";
 import SectionTitle from "@/components/SectionTitle";
-
-function Label({
-  children,
-  required,
-}: {
-  children: React.ReactNode;
-  required?: boolean;
-}) {
-  return (
-    <label className="block text-sm font-medium text-dark-200 mb-1.5">
-      {children}
-      {required && <span className="text-neon-red ml-1">*</span>}
-    </label>
-  );
-}
-
-function Input({
-  className = "",
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className={`w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm disabled:opacity-50 ${className}`}
-      {...props}
-    />
-  );
-}
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { settingService } from "@/services/setting.service";
 
 export default function SettingPage() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -37,19 +13,37 @@ export default function SettingPage() {
   const [showNew, setShowNew] = useState(false);
 
   const [saveMsg, setSaveMsg] = useState("");
+  const [saveType, setSaveType] = useState<"success" | "error">("success");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     if (newPassword !== confirmPassword) {
+      setSaveType("error");
       setSaveMsg("Passwords do not match.");
       setTimeout(() => setSaveMsg(""), 3000);
       return;
     }
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setSaveMsg("Password changed successfully.");
-    setTimeout(() => setSaveMsg(""), 3000);
+
+    setIsSaving(true);
+    try {
+      const res = await settingService.setNewPassword(newPassword);
+      setSaveType("success");
+      setSaveMsg(res.message || "Password changed successfully.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? "Failed to change password.";
+      setSaveType("error");
+      setSaveMsg(msg);
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveMsg(""), 3000);
+    }
   };
 
   return (
@@ -64,7 +58,13 @@ export default function SettingPage() {
 
       {/* Toast */}
       {saveMsg && (
-        <div className="px-4 py-3 bg-neon-green/10 border border-neon-green/20 rounded-xl text-sm text-neon-green font-mono">
+        <div
+          className={`px-4 py-3 rounded-xl text-sm font-mono ${
+            saveType === "success"
+              ? "bg-neon-green/10 border border-neon-green/20 text-neon-green"
+              : "bg-neon-red/10 border border-neon-red/20 text-neon-red"
+          }`}
+        >
           {saveMsg}
         </div>
       )}
@@ -90,6 +90,7 @@ export default function SettingPage() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Current password"
               required
+              disabled={isSaving}
             />
             <button
               type="button"
@@ -114,6 +115,7 @@ export default function SettingPage() {
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="New password"
                 required
+                disabled={isSaving}
               />
               <button
                 type="button"
@@ -136,13 +138,15 @@ export default function SettingPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm password"
               required
+              disabled={isSaving}
             />
           </div>
         </div>
         <div className="flex justify-end">
           <button
             type="submit"
-            className="flex items-center gap-2 px-5 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
+            disabled={isSaving}
+            className="flex items-center gap-2 px-5 py-2.5 bg-accent-500 hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
           >
             <Key className="w-4 h-4" />
             Change Password

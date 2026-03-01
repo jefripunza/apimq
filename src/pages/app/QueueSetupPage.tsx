@@ -19,36 +19,9 @@ import satellite from "@/lib/satellite";
 import { uid } from "@/utils/random";
 import type { HeaderEntry, SchemaType } from "@/types/queue";
 import SectionTitle from "@/components/SectionTitle";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-// ---------- sub-components ----------
-function Label({
-  children,
-  required,
-}: {
-  children: React.ReactNode;
-  required?: boolean;
-}) {
-  return (
-    <label className="block text-sm font-medium text-dark-200 mb-1.5">
-      {children}
-      {required && <span className="text-neon-red ml-1">*</span>}
-    </label>
-  );
-}
-
-function Input({
-  className = "",
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className={`w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm disabled:opacity-50 ${className}`}
-      {...props}
-    />
-  );
-}
-
-// ---------- main component ----------
 export default function QueueSetupPage() {
   const location = useLocation();
   const navigate = useNavigate();
