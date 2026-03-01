@@ -15,6 +15,7 @@ type Queue struct {
 	Enabled      bool      `json:"enabled" gorm:"default:true"`
 	Origin       string    `json:"origin" gorm:"not null"`
 	BatchCount   int       `json:"batch_count" gorm:"default:1"`
+	Timeout      int       `json:"timeout" gorm:"default:30"`
 	Headers      string    `json:"headers" gorm:"type:text"`       // JSON string
 	Schema       string    `json:"schema"`                         // "", "delay", "timing"
 	SchemaConfig string    `json:"schema_config" gorm:"type:text"` // JSON string

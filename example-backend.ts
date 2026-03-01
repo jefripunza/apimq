@@ -2,6 +2,8 @@
 const server = Bun.serve({
   port: 4000,
   async fetch(request) {
+    console.log("-------------------------------------------------------");
+
     const url = new URL(request.url);
     const query = Object.fromEntries(url.searchParams.entries());
     const headers = Object.fromEntries(request.headers.entries());
