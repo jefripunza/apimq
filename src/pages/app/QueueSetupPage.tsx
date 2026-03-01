@@ -581,28 +581,26 @@ export default function QueueSetupPage() {
 
           {/* Delay Section */}
           <div className="space-y-3">
-            {isSendNow && (
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={isUseDelay}
-                    onChange={(e) => setIsUseDelay(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-dark-600 peer-checked:bg-accent-500 rounded-full transition-colors" />
-                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
-                </div>
-                <div>
-                  <p className="text-sm text-dark-200 font-medium">Use Delay</p>
-                  <p className="text-xs text-dark-400 font-mono">
-                    Enable delay settings for send-now queues
-                  </p>
-                </div>
-              </label>
-            )}
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={isUseDelay}
+                  onChange={(e) => setIsUseDelay(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-dark-600 peer-checked:bg-accent-500 rounded-full transition-colors" />
+                <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
+              </div>
+              <div>
+                <p className="text-sm text-dark-200 font-medium">Use Delay</p>
+                <p className="text-xs text-dark-400 font-mono">
+                  Enable delay settings for this queue
+                </p>
+              </div>
+            </label>
 
-            {isSendNow && isUseDelay && (
+            {isUseDelay && (
               <>
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <div className="relative">

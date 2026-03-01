@@ -78,7 +78,6 @@ export default function QueueCard({
 
   useEffect(() => {
     setJsonBody({
-      queue_id: queue.id,
       key: queue.key,
       method: "POST",
       query: {},
