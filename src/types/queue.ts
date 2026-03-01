@@ -20,7 +20,8 @@ export type Queue = {
   consumers: number;
   batch_count: number;
   throughput_sec: string;
-  deliverRate: number;
+  completedCount: number;
+  failedCount: number;
   status: QueueStatus;
   origin?: string;
   batchCount?: number;
@@ -49,3 +50,17 @@ export type QueueMessageStatus =
   | "processing"
   | "completed"
   | "failed";
+
+export interface QueueMessage {
+  id: string;
+  queue_id: string;
+  method: string;
+  query?: string | null;
+  headers?: string | null;
+  body: string;
+  status: QueueMessageStatus;
+  response?: string | null;
+  error_message?: string | null;
+  is_ack: boolean;
+  created_at: string;
+}

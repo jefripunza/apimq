@@ -127,26 +127,39 @@ func GetAll(c *fiber.Ctx) error {
 
 	type messageCountRow struct {
 		QueueID string `gorm:"column:queue_id"`
+		Status  string `gorm:"column:status"`
 		Count   int64  `gorm:"column:count"`
 	}
 
 	counts := make([]messageCountRow, 0)
 	if err := variable.Db.
 		Table("queue_messages").
-		Select("queue_id, COUNT(*) as count").
-		Where("status = ?", "pending").
-		Group("queue_id").
+		Select("queue_id, status, COUNT(*) as count").
+		Group("queue_id, status").
 		Scan(&counts).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to get queue message counts", nil)
 	}
 
-	countByQueueID := make(map[string]int64, len(counts))
+	// Build maps for each status
+	pendingByQueueID := make(map[string]int64)
+	completedByQueueID := make(map[string]int64)
+	failedByQueueID := make(map[string]int64)
 	for _, row := range counts {
-		countByQueueID[row.QueueID] = row.Count
+		switch row.Status {
+		case QueueMessageStatusPending:
+			pendingByQueueID[row.QueueID] = row.Count
+		case QueueMessageStatusCompleted:
+			completedByQueueID[row.QueueID] = row.Count
+		case QueueMessageStatusFailed:
+			failedByQueueID[row.QueueID] = row.Count
+		}
 	}
 
 	for i := range queues {
-		queues[i].Messages = countByQueueID[queues[i].ID.String()]
+		qid := queues[i].ID.String()
+		queues[i].Messages = pendingByQueueID[qid]
+		queues[i].CompletedCount = completedByQueueID[qid]
+		queues[i].FailedCount = failedByQueueID[qid]
 	}
 
 	return dto.OK(c, "Queues retrieved successfully", queues)
@@ -324,4 +337,93 @@ func AddToMessage(c *fiber.Ctx) error {
 	}
 
 	return dto.OK(c, "Message added to queue successfully", nil)
+}
+
+// GetFailedMessages - GET /api/queue/:key/errors
+func GetFailedMessages(c *fiber.Ctx) error {
+	key := c.Params("key")
+	if key == "" {
+		return dto.BadRequest(c, "Key is required", nil)
+	}
+
+	var queue Queue
+	if err := variable.Db.Where("key = ?", key).First(&queue).Error; err != nil {
+		return dto.NotFound(c, "Queue not found", nil)
+	}
+
+	messages := make([]QueueMessage, 0)
+	if err := variable.Db.
+		Where("queue_id = ? AND status = ?", queue.ID.String(), QueueMessageStatusFailed).
+		Order("created_at DESC").
+		Find(&messages).Error; err != nil {
+		return dto.InternalServerError(c, "Failed to get failed messages", nil)
+	}
+
+	return dto.OK(c, "Failed messages retrieved successfully", messages)
+}
+
+// RetryMessage - PUT /api/queue/message/:id/retry
+func RetryMessage(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return dto.BadRequest(c, "Message ID is required", nil)
+	}
+
+	var message QueueMessage
+	if err := variable.Db.Where("id = ?", id).First(&message).Error; err != nil {
+		return dto.NotFound(c, "Message not found", nil)
+	}
+
+	if message.Status != QueueMessageStatusFailed {
+		return dto.BadRequest(c, "Only failed messages can be retried", nil)
+	}
+
+	// Reset status to pending and clear error
+	message.Status = QueueMessageStatusPending
+	message.ErrorMessage = nil
+	message.Response = nil
+
+	if err := variable.Db.Save(&message).Error; err != nil {
+		return dto.InternalServerError(c, "Failed to retry message", nil)
+	}
+
+	return dto.OK(c, "Message queued for retry", message)
+}
+
+// UpdateMessage - PUT /api/queue/message/:id
+type UpdateMessageRequest struct {
+	Method  string  `json:"method"`
+	Query   *string `json:"query,omitempty"`
+	Body    string  `json:"body"`
+	Headers *string `json:"headers,omitempty"`
+}
+
+func UpdateMessage(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return dto.BadRequest(c, "Message ID is required", nil)
+	}
+
+	var message QueueMessage
+	if err := variable.Db.Where("id = ?", id).First(&message).Error; err != nil {
+		return dto.NotFound(c, "Message not found", nil)
+	}
+
+	var req UpdateMessageRequest
+	if err := c.BodyParser(&req); err != nil {
+		return dto.BadRequest(c, "Invalid request body", nil)
+	}
+
+	if req.Method != "" {
+		message.Method = req.Method
+	}
+	message.Query = req.Query
+	message.Body = req.Body
+	message.Headers = req.Headers
+
+	if err := variable.Db.Save(&message).Error; err != nil {
+		return dto.InternalServerError(c, "Failed to update message", nil)
+	}
+
+	return dto.OK(c, "Message updated successfully", message)
 }

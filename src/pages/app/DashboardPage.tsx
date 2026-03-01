@@ -30,7 +30,7 @@ export default function DashboardPage() {
 
         for (const q of queues) {
           const key = q.key;
-          const base = Math.max(1, q.deliverRate);
+          const base = Math.max(1, q.completedCount);
           const existing = next[key] ?? [];
 
           if (existing.length === 0) {

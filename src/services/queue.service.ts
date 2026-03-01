@@ -8,6 +8,8 @@ export interface QueueApi {
   color: string;
   enabled: boolean;
   messages: number;
+  completed_count: number;
+  failed_count: number;
   origin: string;
   batch_count: number;
   timeout: number;
@@ -92,4 +94,40 @@ export const queueService = {
     const response = await satellite.post<Response<null>>(`/queue`, payload);
     return response.data;
   },
+  getFailedMessages: async (key: string) => {
+    const response = await satellite.get<Response<QueueMessageApi[]>>(
+      `/api/queue/errors/${encodeURIComponent(key)}`,
+    );
+    return response.data;
+  },
+  retryMessage: async (messageId: string) => {
+    const response = await satellite.put<Response<QueueMessageApi>>(
+      `/api/queue/message/${encodeURIComponent(messageId)}/retry`,
+    );
+    return response.data;
+  },
+  updateMessage: async (
+    messageId: string,
+    payload: { method: string; query?: string; body: string; headers?: string },
+  ) => {
+    const response = await satellite.put<Response<QueueMessageApi>>(
+      `/api/queue/message/${encodeURIComponent(messageId)}`,
+      payload,
+    );
+    return response.data;
+  },
 };
+
+export interface QueueMessageApi {
+  id: string;
+  queue_id: string;
+  method: string;
+  query: string | null;
+  headers: string | null;
+  body: string;
+  status: string;
+  response: string | null;
+  error_message: string | null;
+  is_ack: boolean;
+  created_at: string;
+}

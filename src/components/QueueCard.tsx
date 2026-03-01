@@ -226,7 +226,7 @@ export default function QueueCard({
         </div>
         <div className="flex items-center gap-1 text-xs font-mono text-neon-cyan">
           <FileText className="w-3 h-3" />
-          <span>{queue.deliverRate}</span>
+          <span>{queue.completedCount}</span>
           <span className="text-dark-500 ml-1">done</span>
         </div>
         <button
@@ -235,7 +235,7 @@ export default function QueueCard({
           className="flex items-center gap-1 text-xs font-mono text-neon-red cursor-pointer"
         >
           <FileText className="w-3 h-3" />
-          <span>{queue.deliverRate}</span>
+          <span>{queue.failedCount}</span>
           <span className="text-dark-500 ml-1 underline">error</span>
         </button>
       </div>

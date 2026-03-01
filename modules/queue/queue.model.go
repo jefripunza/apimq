@@ -26,8 +26,10 @@ type Queue struct {
 	ErrorTrace    string     `json:"error_trace" gorm:"type:text"`         // JSON string
 	CreatedAt     time.Time  `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt     time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
-	// metadata
-	Messages int64 `json:"messages" gorm:"->;column:messages;-:migration"` // count of messages
+	// metadata (computed, not stored)
+	Messages       int64 `json:"messages" gorm:"->;column:messages;-:migration"`               // count of pending messages
+	CompletedCount int64 `json:"completed_count" gorm:"->;column:completed_count;-:migration"` // count of completed messages
+	FailedCount    int64 `json:"failed_count" gorm:"->;column:failed_count;-:migration"`       // count of failed messages
 }
 
 func (q *Queue) BeforeCreate(tx *gorm.DB) error {

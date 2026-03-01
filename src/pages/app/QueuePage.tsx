@@ -5,7 +5,6 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
-import { useDashboardStore } from "@/stores/dashboardStore";
 import { useQueueStore } from "@/stores/queueStore";
 import { Plus } from "lucide-react";
 import {
@@ -21,7 +20,9 @@ import { Switch } from "@/components/ui/switch";
 import { uid } from "@/utils/random";
 import { formatDate } from "@/utils/datetime";
 import QueueCard from "@/components/QueueCard";
-import type { HeaderEntry, KeyStatus, Queue, QueueError } from "@/types/queue";
+import type { HeaderEntry, KeyStatus, Queue } from "@/types/queue";
+import { queueService, type QueueMessageApi } from "@/services/queue.service";
+import { Loader2, RefreshCw } from "lucide-react";
 
 export default function QueuePage() {
   const {
@@ -31,13 +32,10 @@ export default function QueuePage() {
     create: createQueue,
   } = useQueueStore();
 
-  const {
-    errorsByQueue,
-    ackQueueErrors,
-    retryQueueErrors,
-    ackQueueError,
-    retryQueueError,
-  } = useDashboardStore();
+  // Failed messages state
+  const [failedMessages, setFailedMessages] = useState<QueueMessageApi[]>([]);
+  const [isLoadingErrors, setIsLoadingErrors] = useState(false);
+  const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchAllQueues();
@@ -167,9 +165,43 @@ export default function QueuePage() {
     resetNewQueueForm();
   };
 
-  const currentErrors: QueueError[] = errorsQueue
-    ? (errorsByQueue[errorsQueue.key] ?? [])
-    : [];
+  const fetchFailedMessages = async (key: string) => {
+    setIsLoadingErrors(true);
+    try {
+      const res = await queueService.getFailedMessages(key);
+      if (res.status === 200 && res.data) {
+        setFailedMessages(res.data);
+      }
+    } catch {
+      setFailedMessages([]);
+    } finally {
+      setIsLoadingErrors(false);
+    }
+  };
+
+  const handleRetryMessage = async (messageId: string) => {
+    setRetryingIds((prev) => new Set(prev).add(messageId));
+    try {
+      const res = await queueService.retryMessage(messageId);
+      if (res.status === 200) {
+        setFailedMessages((prev) => prev.filter((m) => m.id !== messageId));
+        fetchAllQueues();
+      }
+    } finally {
+      setRetryingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(messageId);
+        return next;
+      });
+    }
+  };
+
+  const handleRetryAll = async () => {
+    const ids = failedMessages.map((m) => m.id);
+    for (const id of ids) {
+      await handleRetryMessage(id);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -509,78 +541,88 @@ export default function QueuePage() {
         </Dialog>
       </div>
 
-      {/* Errors dialog */}
-      <Dialog open={isErrorsOpen} onOpenChange={setIsErrorsOpen}>
+      {/* Failed Messages dialog */}
+      <Dialog
+        open={isErrorsOpen}
+        onOpenChange={(open) => {
+          setIsErrorsOpen(open);
+          if (!open) setFailedMessages([]);
+        }}
+      >
         <DialogContent
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
-          className="max-h-[85vh] overflow-y-auto"
+          className="max-h-[85vh] overflow-y-auto max-w-2xl"
         >
           <DialogHeader>
             <DialogTitle>
-              Errors{errorsQueue ? ` — ${errorsQueue.name}` : ""}
+              Failed Messages{errorsQueue ? ` — ${errorsQueue.name}` : ""}
             </DialogTitle>
             <DialogDescription>
-              Collected delivery errors. Choose an action to acknowledge or
-              retry.
+              Messages that failed to deliver. You can retry or edit them.
             </DialogDescription>
           </DialogHeader>
 
           <div
             className={`mt-4 space-y-3 ${
-              currentErrors.length > 5 ? "max-h-105 overflow-y-auto pr-2" : ""
+              failedMessages.length > 5 ? "max-h-105 overflow-y-auto pr-2" : ""
             }`}
           >
-            {currentErrors.length === 0 ? (
+            {isLoadingErrors ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-accent-500" />
+              </div>
+            ) : failedMessages.length === 0 ? (
               <div className="text-sm text-dark-300 font-mono bg-dark-900/40 border border-dark-600/30 rounded-xl p-4">
-                No collected errors.
+                No failed messages.
               </div>
             ) : (
-              currentErrors.map((err) => (
+              failedMessages.map((msg) => (
                 <div
-                  key={err.id}
+                  key={msg.id}
                   className="bg-dark-900/40 border border-dark-600/30 rounded-xl p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm text-foreground font-semibold">
-                        {err.message}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-mono px-2 py-0.5 bg-accent-500/20 text-accent-400 rounded">
+                          {msg.method}
+                        </span>
+                        <span className="text-[11px] font-mono text-neon-red border border-neon-red/20 bg-neon-red/10 rounded-md px-2 py-0.5">
+                          failed
+                        </span>
+                      </div>
+                      <p className="text-xs text-dark-400 font-mono">
+                        {formatDate(msg.created_at)}
                       </p>
-                      <p className="text-xs text-dark-400 font-mono mt-1">
-                        {formatDate(err.at)}
-                      </p>
-                      {err.detail && (
-                        <p className="text-xs text-dark-300 font-mono mt-2 wrap-break-word">
-                          {err.detail}
+                      {msg.error_message && (
+                        <p className="text-xs text-neon-red font-mono mt-2 break-all">
+                          {msg.error_message}
                         </p>
                       )}
+                      <details className="mt-2">
+                        <summary className="text-xs text-dark-400 cursor-pointer hover:text-dark-200">
+                          View body
+                        </summary>
+                        <pre className="text-xs text-dark-300 font-mono mt-1 p-2 bg-dark-900/60 rounded overflow-x-auto max-h-32">
+                          {msg.body}
+                        </pre>
+                      </details>
                     </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <span className="text-[11px] font-mono text-neon-red border border-neon-red/20 bg-neon-red/10 rounded-md px-2 py-0.5">
-                        error
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!errorsQueue) return;
-                            ackQueueError(errorsQueue.key, err.id);
-                          }}
-                          className="px-3 py-1.5 text-xs font-semibold text-dark-200 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-lg transition-all"
-                        >
-                          Ack
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!errorsQueue) return;
-                            retryQueueError(errorsQueue.key, err.id);
-                          }}
-                          className="px-3 py-1.5 text-xs font-semibold text-white bg-accent-500 hover:bg-accent-600 rounded-lg transition-all hover:shadow-lg hover:shadow-accent-500/25"
-                        >
-                          Retry
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        disabled={retryingIds.has(msg.id)}
+                        onClick={() => handleRetryMessage(msg.id)}
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 rounded-lg transition-all flex items-center gap-1"
+                      >
+                        {retryingIds.has(msg.id) ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3 h-3" />
+                        )}
+                        Retry
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -598,22 +640,8 @@ export default function QueuePage() {
             </button>
             <button
               type="button"
-              disabled={!errorsQueue || currentErrors.length === 0}
-              onClick={() => {
-                if (!errorsQueue) return;
-                ackQueueErrors(errorsQueue.key);
-              }}
-              className="px-5 py-2.5 text-sm font-semibold text-dark-200 hover:text-foreground bg-dark-700/40 hover:bg-dark-700/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
-            >
-              Ack All
-            </button>
-            <button
-              type="button"
-              disabled={!errorsQueue || currentErrors.length === 0}
-              onClick={() => {
-                if (!errorsQueue) return;
-                retryQueueErrors(errorsQueue.key);
-              }}
+              disabled={!errorsQueue || failedMessages.length === 0}
+              onClick={handleRetryAll}
               className="px-5 py-2.5 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
             >
               Retry All
@@ -631,6 +659,7 @@ export default function QueuePage() {
             onOpenErrors={(q) => {
               setErrorsQueue(q);
               setIsErrorsOpen(true);
+              fetchFailedMessages(q.key);
             }}
           />
         ))}

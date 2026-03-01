@@ -9,6 +9,9 @@ func RegisterRoutes(r fiber.Router) {
 	r.Put("/edit/:key", Update)
 	r.Delete("/remove/:key", Delete)
 	r.Patch("/toggle/:key", PatchToggle)
+	r.Get("/errors/:key", GetFailedMessages)
+	r.Put("/message/:id/retry", RetryMessage)
+	r.Put("/message/:id", UpdateMessage)
 }
 
 func RegisterPublicRoutes(app *fiber.App) {
