@@ -94,16 +94,32 @@ func Create(c *fiber.Ctx) error {
 // GetAll - GET /api/queue
 func GetAll(c *fiber.Ctx) error {
 	queues := make([]Queue, 0)
-	if err := variable.Db.
-		Table("queues").
-		Select(
-			"queues.*, (SELECT COUNT(*) FROM queue_messages WHERE queue_messages.queue_id = queues.id) AS messages",
-		).
-		Order("created_at DESC").
-		Find(&queues).Error; err != nil {
+	if err := variable.Db.Order("created_at DESC").Find(&queues).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to get queues", nil)
 	}
-	fmt.Printf("Data: %+v\n", queues)
+
+	type messageCountRow struct {
+		QueueID string `gorm:"column:queue_id"`
+		Count   int64  `gorm:"column:count"`
+	}
+
+	counts := make([]messageCountRow, 0)
+	if err := variable.Db.
+		Table("queue_messages").
+		Select("queue_id, COUNT(*) as count").
+		Group("queue_id").
+		Scan(&counts).Error; err != nil {
+		return dto.InternalServerError(c, "Failed to get queue message counts", nil)
+	}
+
+	countByQueueID := make(map[string]int64, len(counts))
+	for _, row := range counts {
+		countByQueueID[row.QueueID] = row.Count
+	}
+
+	for i := range queues {
+		queues[i].Messages = countByQueueID[queues[i].ID.String()]
+	}
 
 	return dto.OK(c, "Queues retrieved successfully", queues)
 }

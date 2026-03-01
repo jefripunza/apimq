@@ -22,7 +22,7 @@ type Queue struct {
 	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt    time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 	// metadata
-	Messages int `json:"messages" gorm:"-"` // count of messages
+	Messages int64 `json:"messages" gorm:"->;column:messages;-:migration"` // count of messages
 }
 
 func (q *Queue) BeforeCreate(tx *gorm.DB) error {
