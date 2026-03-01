@@ -153,6 +153,21 @@ func GetAll(c *fiber.Ctx) error {
 		return dto.InternalServerError(c, "Failed to get queue message counts", nil)
 	}
 
+	// Get completed count (completed + failed but acknowledged)
+	type completedCountRow struct {
+		QueueID string `gorm:"column:queue_id"`
+		Count   int64  `gorm:"column:count"`
+	}
+	completedCounts := make([]completedCountRow, 0)
+	if err := variable.Db.
+		Table("queue_messages").
+		Select("queue_id, COUNT(*) as count").
+		Where("status = ? OR (status = ? AND is_ack = true)", QueueMessageStatusCompleted, QueueMessageStatusFailed).
+		Group("queue_id").
+		Scan(&completedCounts).Error; err != nil {
+		return dto.InternalServerError(c, "Failed to get completed message counts", nil)
+	}
+
 	// Get failed count excluding acknowledged messages
 	type failedCountRow struct {
 		QueueID string `gorm:"column:queue_id"`
@@ -176,9 +191,10 @@ func GetAll(c *fiber.Ctx) error {
 		switch row.Status {
 		case QueueMessageStatusPending:
 			pendingByQueueID[row.QueueID] = row.Count
-		case QueueMessageStatusCompleted:
-			completedByQueueID[row.QueueID] = row.Count
 		}
+	}
+	for _, row := range completedCounts {
+		completedByQueueID[row.QueueID] = row.Count
 	}
 	for _, row := range failedCounts {
 		failedByQueueID[row.QueueID] = row.Count

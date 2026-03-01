@@ -21,7 +21,7 @@ import { uid } from "@/utils/random";
 import { formatDate } from "@/utils/datetime";
 import QueueCard from "@/components/QueueCard";
 import type { HeaderEntry, KeyStatus, Queue } from "@/types/queue";
-import { queueService, type QueueMessageApi } from "@/services/queue.service";
+import type { QueueMessageApi } from "@/services/queue.service";
 import { Loader2, RefreshCw } from "lucide-react";
 
 export default function QueuePage() {
@@ -30,6 +30,9 @@ export default function QueuePage() {
     fetchAll: fetchAllQueues,
     checkKeyAvailable,
     create: createQueue,
+    getFailedMessages,
+    retryMessage,
+    ackMessage,
   } = useQueueStore();
 
   // Failed messages state
@@ -170,10 +173,8 @@ export default function QueuePage() {
   const fetchFailedMessages = async (key: string) => {
     setIsLoadingErrors(true);
     try {
-      const res = await queueService.getFailedMessages(key);
-      if (res.status === 200 && res.data) {
-        setFailedMessages(res.data);
-      }
+      const messages = await getFailedMessages(key);
+      setFailedMessages(messages);
     } catch {
       setFailedMessages([]);
     } finally {
@@ -184,10 +185,9 @@ export default function QueuePage() {
   const handleRetryMessage = async (messageId: string) => {
     setRetryingIds((prev) => new Set(prev).add(messageId));
     try {
-      const res = await queueService.retryMessage(messageId);
-      if (res.status === 200) {
+      const success = await retryMessage(messageId);
+      if (success) {
         setFailedMessages((prev) => prev.filter((m) => m.id !== messageId));
-        fetchAllQueues();
       }
     } finally {
       setRetryingIds((prev) => {
@@ -200,10 +200,9 @@ export default function QueuePage() {
 
   const handleAckMessage = async (messageId: string) => {
     try {
-      const res = await queueService.ackMessage(messageId);
-      if (res.status === 200) {
+      const success = await ackMessage(messageId);
+      if (success) {
         setFailedMessages((prev) => prev.filter((m) => m.id !== messageId));
-        fetchAllQueues();
       }
     } catch {
       // silent fail

@@ -11,7 +11,6 @@ import {
   Send,
 } from "lucide-react";
 import { useQueueStore } from "@/stores/queueStore";
-import { queueService } from "@/services/queue.service";
 import type { Queue } from "@/types/queue";
 import {
   Dialog,
@@ -33,6 +32,7 @@ export default function QueueCard({
 }) {
   const navigate = useNavigate();
   const toggleQueueEnabled = useQueueStore((s) => s.toggleEnabled);
+  const sendTestMessage = useQueueStore((s) => s.sendTestMessage);
   const isError = queue.status === "error";
 
   const [isCodeOpen, setIsCodeOpen] = useState(false);
@@ -51,7 +51,7 @@ export default function QueueCard({
       jsonBody["key"] = queue.key;
 
       for (let i = 0; i < n; i += 1) {
-        await queueService.sendTestMessage(jsonBody);
+        await sendTestMessage(jsonBody);
       }
 
       setSendSuccess(true);

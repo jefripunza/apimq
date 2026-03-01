@@ -2,6 +2,7 @@ import { create } from "zustand";
 import {
   queueService,
   type QueueApi,
+  type QueueMessageApi,
   type CreateQueuePayload,
   type UpdateQueuePayload,
 } from "@/services/queue.service";
@@ -85,6 +86,10 @@ interface QueueState {
   update: (key: string, payload: UpdateQueuePayload) => Promise<boolean>;
   remove: (key: string) => Promise<boolean>;
   toggleEnabled: (key: string, enabled: boolean) => Promise<boolean>;
+  sendTestMessage: (json: Record<string, unknown>) => Promise<boolean>;
+  getFailedMessages: (key: string) => Promise<QueueMessageApi[]>;
+  retryMessage: (messageId: string) => Promise<boolean>;
+  ackMessage: (messageId: string) => Promise<boolean>;
 }
 
 export const useQueueStore = create<QueueState>()((set, get) => ({
@@ -230,6 +235,70 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
       const msg =
         (e.response?.data as { message?: string } | undefined)?.message ??
         "Failed to toggle queue";
+      set({ error: msg });
+      return false;
+    }
+  },
+
+  sendTestMessage: async (json: Record<string, unknown>) => {
+    try {
+      await queueService.sendTestMessage(json);
+      return true;
+    } catch (err: unknown) {
+      const e = err as AxiosError;
+      const msg =
+        (e.response?.data as { message?: string } | undefined)?.message ??
+        "Failed to send test message";
+      set({ error: msg });
+      return false;
+    }
+  },
+
+  getFailedMessages: async (key: string) => {
+    try {
+      const res = await queueService.getFailedMessages(key);
+      return res.data ?? [];
+    } catch (err: unknown) {
+      const e = err as AxiosError;
+      const msg =
+        (e.response?.data as { message?: string } | undefined)?.message ??
+        "Failed to get failed messages";
+      set({ error: msg });
+      return [];
+    }
+  },
+
+  retryMessage: async (messageId: string) => {
+    try {
+      const res = await queueService.retryMessage(messageId);
+      if (res.status === 200) {
+        await get().fetchAll();
+        return true;
+      }
+      return false;
+    } catch (err: unknown) {
+      const e = err as AxiosError;
+      const msg =
+        (e.response?.data as { message?: string } | undefined)?.message ??
+        "Failed to retry message";
+      set({ error: msg });
+      return false;
+    }
+  },
+
+  ackMessage: async (messageId: string) => {
+    try {
+      const res = await queueService.ackMessage(messageId);
+      if (res.status === 200) {
+        await get().fetchAll();
+        return true;
+      }
+      return false;
+    } catch (err: unknown) {
+      const e = err as AxiosError;
+      const msg =
+        (e.response?.data as { message?: string } | undefined)?.message ??
+        "Failed to acknowledge message";
       set({ error: msg });
       return false;
     }
