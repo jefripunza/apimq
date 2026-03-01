@@ -399,13 +399,19 @@ func AddToMessage(c *fiber.Ctx) error {
 		}
 	}
 
+	// Determine initial status based on queue timing config
+	initialStatus := QueueMessageStatusPending
+	if !queue.IsSendNow && queue.SendLaterTime != nil && queue.SendLaterTime.After(time.Now()) {
+		initialStatus = QueueMessageStatusTiming
+	}
+
 	message := QueueMessage{
 		QueueID: queue.ID.String(),
 		Method:  req.Method,
 		Query:   req.Query,
 		Body:    req.Body,
 		Headers: req.Headers,
-		Status:  QueueMessageStatusPending,
+		Status:  initialStatus,
 	}
 	if err := variable.Db.Create(&message).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to add message to queue", nil)

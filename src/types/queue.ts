@@ -47,6 +47,7 @@ export interface QueueError {
 }
 
 export type QueueMessageStatus =
+  | "timing"
   | "pending"
   | "processing"
   | "completed"

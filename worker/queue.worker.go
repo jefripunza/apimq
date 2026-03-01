@@ -64,6 +64,7 @@ func NewManager() *Manager {
 // Start launches the sync loop that reconciles DB queues with active workers.
 func (m *Manager) Start() {
 	go m.syncLoop()
+	go m.timingCheckerLoop()
 	log.Println("🚀 Queue worker manager started")
 }
 
@@ -76,6 +77,38 @@ func (m *Manager) syncLoop() {
 	defer ticker.Stop()
 	for range ticker.C {
 		m.sync()
+	}
+}
+
+// timingCheckerLoop checks for scheduled queues and converts timing messages to pending when time arrives
+func (m *Manager) timingCheckerLoop() {
+	log.Println("⏰ Timing checker loop started")
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		// Find all queues with IsSendNow=false and SendLaterTime <= now
+		var queues []queue.Queue
+		now := time.Now()
+		if err := variable.Db.
+			Where("is_send_now = ? AND send_later_time IS NOT NULL AND send_later_time <= ?", false, now).
+			Find(&queues).Error; err != nil {
+			log.Printf("⚠️  Timing checker: failed to fetch scheduled queues: %v", err)
+			continue
+		}
+
+		for _, q := range queues {
+			// Convert all 'timing' messages for this queue to 'pending'
+			result := variable.Db.Model(&queue.QueueMessage{}).
+				Where("queue_id = ? AND status = ?", q.ID.String(), queue.QueueMessageStatusTiming).
+				Update("status", queue.QueueMessageStatusPending)
+
+			if result.Error != nil {
+				log.Printf("⚠️  Timing checker: failed to update messages for queue %s: %v", q.Key, result.Error)
+			} else if result.RowsAffected > 0 {
+				log.Printf("⏰ Timing checker: converted %d timing→pending messages for queue %s (scheduled time reached)", result.RowsAffected, q.Key)
+			}
+		}
 	}
 }
 

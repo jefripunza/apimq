@@ -43,6 +43,7 @@ func (q *Queue) BeforeCreate(tx *gorm.DB) error {
 // ------------------------------------------------------ //
 
 const (
+	QueueMessageStatusTiming     = "timing"
 	QueueMessageStatusPending    = "pending"
 	QueueMessageStatusProcessing = "processing"
 	QueueMessageStatusCompleted  = "completed"
@@ -56,7 +57,7 @@ type QueueMessage struct {
 	Query        *string   `json:"query,omitempty" gorm:"type:text;default:null"`   // JSON stringified (query params)
 	Headers      *string   `json:"headers,omitempty" gorm:"type:text;default:null"` // JSON stringified (extra headers)
 	Body         string    `json:"body" gorm:"type:text"`                           // JSON stringified
-	Status       string    `json:"status" gorm:"default:pending"`                   // pending, processing, completed, failed
+	Status       string    `json:"status" gorm:"default:pending"`                   // timing, pending, processing, completed, failed
 	Response     *string   `json:"response,omitempty" gorm:"type:text;default:null"`
 	ErrorMessage *string   `json:"error_message,omitempty" gorm:"type:text;default:null"`
 	IsAck        bool      `json:"is_ack" gorm:"default:false"`
