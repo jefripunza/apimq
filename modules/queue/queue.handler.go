@@ -20,6 +20,7 @@ type CreateQueueRequest struct {
 	Headers       []map[string]string    `json:"headers"`
 	IsSendNow     bool                   `json:"isSendNow"`
 	SendLaterTime *string                `json:"sendLaterTime,omitempty"`
+	IsUseDelay    bool                   `json:"isUseDelay"`
 	IsRandomDelay bool                   `json:"isRandomDelay"`
 	DelaySec      int                    `json:"delaySec"`
 	DelayStart    int                    `json:"delayStart"`
@@ -36,6 +37,7 @@ type UpdateQueueRequest struct {
 	Headers       []map[string]string    `json:"headers"`
 	IsSendNow     bool                   `json:"isSendNow"`
 	SendLaterTime *string                `json:"sendLaterTime,omitempty"`
+	IsUseDelay    bool                   `json:"isUseDelay"`
 	IsRandomDelay bool                   `json:"isRandomDelay"`
 	DelaySec      int                    `json:"delaySec"`
 	DelayStart    int                    `json:"delayStart"`
@@ -83,6 +85,16 @@ func Create(c *fiber.Ctx) error {
 		}
 	}
 
+	// Normalize delay fields
+	// Delay can be used only when sending now AND is_use_delay = true
+	useDelay := req.IsSendNow && req.IsUseDelay
+	if !useDelay {
+		req.IsRandomDelay = false
+		req.DelaySec = 0
+		req.DelayStart = 0
+		req.DelayEnd = 0
+	}
+
 	queue := Queue{
 		Name:          req.Name,
 		Key:           req.Key,
@@ -93,6 +105,7 @@ func Create(c *fiber.Ctx) error {
 		Headers:       string(headersJSON),
 		IsSendNow:     req.IsSendNow,
 		SendLaterTime: sendLaterTime,
+		IsUseDelay:    req.IsUseDelay,
 		IsRandomDelay: req.IsRandomDelay,
 		DelaySec:      req.DelaySec,
 		DelayStart:    req.DelayStart,
@@ -140,6 +153,21 @@ func GetAll(c *fiber.Ctx) error {
 		return dto.InternalServerError(c, "Failed to get queue message counts", nil)
 	}
 
+	// Get failed count excluding acknowledged messages
+	type failedCountRow struct {
+		QueueID string `gorm:"column:queue_id"`
+		Count   int64  `gorm:"column:count"`
+	}
+	failedCounts := make([]failedCountRow, 0)
+	if err := variable.Db.
+		Table("queue_messages").
+		Select("queue_id, COUNT(*) as count").
+		Where("status = ? AND is_ack = false", QueueMessageStatusFailed).
+		Group("queue_id").
+		Scan(&failedCounts).Error; err != nil {
+		return dto.InternalServerError(c, "Failed to get failed message counts", nil)
+	}
+
 	// Build maps for each status
 	pendingByQueueID := make(map[string]int64)
 	completedByQueueID := make(map[string]int64)
@@ -150,9 +178,10 @@ func GetAll(c *fiber.Ctx) error {
 			pendingByQueueID[row.QueueID] = row.Count
 		case QueueMessageStatusCompleted:
 			completedByQueueID[row.QueueID] = row.Count
-		case QueueMessageStatusFailed:
-			failedByQueueID[row.QueueID] = row.Count
 		}
+	}
+	for _, row := range failedCounts {
+		failedByQueueID[row.QueueID] = row.Count
 	}
 
 	for i := range queues {
@@ -217,6 +246,16 @@ func Update(c *fiber.Ctx) error {
 		}
 	}
 
+	// Normalize delay fields
+	// Delay can be used only when sending now AND is_use_delay = true
+	useDelay := req.IsSendNow && req.IsUseDelay
+	if !useDelay {
+		req.IsRandomDelay = false
+		req.DelaySec = 0
+		req.DelayStart = 0
+		req.DelayEnd = 0
+	}
+
 	queue.Name = req.Name
 	queue.Color = req.Color
 	queue.Origin = req.Origin
@@ -225,6 +264,7 @@ func Update(c *fiber.Ctx) error {
 	queue.Headers = string(headersJSON)
 	queue.IsSendNow = req.IsSendNow
 	queue.SendLaterTime = sendLaterTime
+	queue.IsUseDelay = req.IsUseDelay
 	queue.IsRandomDelay = req.IsRandomDelay
 	queue.DelaySec = req.DelaySec
 	queue.DelayStart = req.DelayStart
@@ -353,7 +393,7 @@ func GetFailedMessages(c *fiber.Ctx) error {
 
 	messages := make([]QueueMessage, 0)
 	if err := variable.Db.
-		Where("queue_id = ? AND status = ?", queue.ID.String(), QueueMessageStatusFailed).
+		Where("queue_id = ? AND status = ? AND is_ack = false", queue.ID.String(), QueueMessageStatusFailed).
 		Order("created_at DESC").
 		Find(&messages).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to get failed messages", nil)
@@ -388,6 +428,32 @@ func RetryMessage(c *fiber.Ctx) error {
 	}
 
 	return dto.OK(c, "Message queued for retry", message)
+}
+
+// AckMessage - PUT /api/queue/message/:id/ack
+func AckMessage(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return dto.BadRequest(c, "Message ID is required", nil)
+	}
+
+	var message QueueMessage
+	if err := variable.Db.Where("id = ?", id).First(&message).Error; err != nil {
+		return dto.NotFound(c, "Message not found", nil)
+	}
+
+	if message.Status != QueueMessageStatusFailed {
+		return dto.BadRequest(c, "Only failed messages can be acknowledged", nil)
+	}
+
+	// Mark as acknowledged
+	message.IsAck = true
+
+	if err := variable.Db.Save(&message).Error; err != nil {
+		return dto.InternalServerError(c, "Failed to acknowledge message", nil)
+	}
+
+	return dto.OK(c, "Message acknowledged successfully", message)
 }
 
 // UpdateMessage - PUT /api/queue/message/:id

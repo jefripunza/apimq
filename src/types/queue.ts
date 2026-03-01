@@ -29,6 +29,7 @@ export type Queue = {
   headers?: Array<{ key: string; value: string }>;
   isSendNow?: boolean;
   sendLaterTime?: string;
+  isUseDelay?: boolean;
   isRandomDelay?: boolean;
   delaySec?: number;
   delayStart?: number;

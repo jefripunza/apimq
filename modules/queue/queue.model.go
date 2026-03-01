@@ -19,6 +19,7 @@ type Queue struct {
 	Headers       string     `json:"headers" gorm:"type:text"`             // JSON string
 	IsSendNow     bool       `json:"is_send_now" gorm:"default:true"`      // if true, send immediately
 	SendLaterTime *time.Time `json:"send_later_time" gorm:"default:null"`  // if is_send_now is false, send at this time (only time-based schema)
+	IsUseDelay    bool       `json:"is_use_delay" gorm:"default:true"`     // if is_send_now is true, use delay no hide, if false hide delay fields
 	IsRandomDelay bool       `json:"is_random_delay" gorm:"default:false"` // if true, add random delay
 	DelaySec      int        `json:"delay_sec" gorm:"default:0"`           // delay in seconds (only delay-based schema)
 	DelayStart    int        `json:"delay_start" gorm:"default:0"`         // start delay in seconds (only delay-based schema)

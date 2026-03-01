@@ -60,6 +60,7 @@ export default function QueueSetupPage() {
   const [isSendNow, setIsSendNow] = useState(true);
   const [sendLaterTime, setSendLaterTime] = useState("");
   // delay fields
+  const [isUseDelay, setIsUseDelay] = useState(true);
   const [isRandomDelay, setIsRandomDelay] = useState(false);
   const [delaySec, setDelaySec] = useState("");
   const [delayStart, setDelayStart] = useState("");
@@ -90,6 +91,7 @@ export default function QueueSetupPage() {
           headers?: Array<{ key: string; value: string }>;
           isSendNow?: boolean;
           sendLaterTime?: string;
+          isUseDelay?: boolean;
           isRandomDelay?: boolean;
           delaySec?: string;
           delayStart?: string;
@@ -123,6 +125,8 @@ export default function QueueSetupPage() {
     if (typeof prefill.isSendNow === "boolean") setIsSendNow(prefill.isSendNow);
     if (typeof prefill.sendLaterTime === "string")
       setSendLaterTime(prefill.sendLaterTime);
+    if (typeof prefill.isUseDelay === "boolean")
+      setIsUseDelay(prefill.isUseDelay);
     if (typeof prefill.isRandomDelay === "boolean")
       setIsRandomDelay(prefill.isRandomDelay);
     if (typeof prefill.delaySec === "string") setDelaySec(prefill.delaySec);
@@ -164,6 +168,7 @@ export default function QueueSetupPage() {
           setSendLaterTime(`${hh}:${mm}`);
         }
       }
+      setIsUseDelay(existing.isUseDelay ?? true);
       setIsRandomDelay(existing.isRandomDelay ?? false);
       setDelaySec(String(existing.delaySec ?? ""));
       setDelayStart(String(existing.delayStart ?? ""));
@@ -202,6 +207,7 @@ export default function QueueSetupPage() {
           setSendLaterTime(`${hh}:${mm}`);
         }
       }
+      setIsUseDelay(q.isUseDelay ?? true);
       setIsRandomDelay(q.isRandomDelay ?? false);
       setDelaySec(String(q.delaySec ?? ""));
       setDelayStart(String(q.delayStart ?? ""));
@@ -274,6 +280,7 @@ export default function QueueSetupPage() {
           !isSendNow && sendLaterTime
             ? computeNextSendLaterISO(sendLaterTime)
             : undefined,
+        isUseDelay: isSendNow ? isUseDelay : false,
         isRandomDelay,
         delaySec: !isRandomDelay ? Number(delaySec || 0) : 0,
         delayStart: isRandomDelay ? Number(delayStart || 0) : 0,
@@ -574,67 +581,92 @@ export default function QueueSetupPage() {
 
           {/* Delay Section */}
           <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={isRandomDelay}
-                  onChange={(e) => setIsRandomDelay(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-dark-600 peer-checked:bg-accent-500 rounded-full transition-colors" />
-                <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
-              </div>
-              <div>
-                <p className="text-sm text-dark-200 font-medium">
-                  Random Delay
-                </p>
-                <p className="text-xs text-dark-400 font-mono">
-                  Add random delay between messages
-                </p>
-              </div>
-            </label>
+            {isSendNow && (
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={isUseDelay}
+                    onChange={(e) => setIsUseDelay(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-dark-600 peer-checked:bg-accent-500 rounded-full transition-colors" />
+                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
+                </div>
+                <div>
+                  <p className="text-sm text-dark-200 font-medium">Use Delay</p>
+                  <p className="text-xs text-dark-400 font-mono">
+                    Enable delay settings for send-now queues
+                  </p>
+                </div>
+              </label>
+            )}
 
-            {isRandomDelay ? (
-              <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
-                <div>
-                  <Label>Min seconds</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={delayStart}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      setDelayStart(e.target.value)
-                    }
-                    placeholder="1"
-                  />
-                </div>
-                <div>
-                  <Label>Max seconds</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={delayEnd}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      setDelayEnd(e.target.value)
-                    }
-                    placeholder="60"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="pl-4 border-l-2 border-accent-500/30">
-                <Label>Delay (seconds)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={delaySec}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setDelaySec(e.target.value)
-                  }
-                  placeholder="0"
-                />
-              </div>
+            {isSendNow && isUseDelay && (
+              <>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={isRandomDelay}
+                      onChange={(e) => setIsRandomDelay(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-dark-600 peer-checked:bg-accent-500 rounded-full transition-colors" />
+                    <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-dark-200 font-medium">
+                      Random Delay
+                    </p>
+                    <p className="text-xs text-dark-400 font-mono">
+                      Add random delay between messages
+                    </p>
+                  </div>
+                </label>
+
+                {isRandomDelay ? (
+                  <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
+                    <div>
+                      <Label>Min seconds</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={delayStart}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setDelayStart(e.target.value)
+                        }
+                        placeholder="1"
+                      />
+                    </div>
+                    <div>
+                      <Label>Max seconds</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={delayEnd}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setDelayEnd(e.target.value)
+                        }
+                        placeholder="60"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pl-4 border-l-2 border-accent-500/30">
+                    <Label>Delay (seconds)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={delaySec}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setDelaySec(e.target.value)
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

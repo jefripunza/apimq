@@ -16,6 +16,7 @@ export interface QueueApi {
   headers: string;
   is_send_now: boolean;
   send_later_time: string | null;
+  is_use_delay: boolean;
   is_random_delay: boolean;
   delay_sec: number;
   delay_start: number;
@@ -35,6 +36,7 @@ export type CreateQueuePayload = {
   headers?: Array<{ key: string; value: string }>;
   isSendNow?: boolean;
   sendLaterTime?: string;
+  isUseDelay?: boolean;
   isRandomDelay?: boolean;
   delaySec?: number;
   delayStart?: number;
@@ -103,6 +105,12 @@ export const queueService = {
   retryMessage: async (messageId: string) => {
     const response = await satellite.put<Response<QueueMessageApi>>(
       `/api/queue/message/${encodeURIComponent(messageId)}/retry`,
+    );
+    return response.data;
+  },
+  ackMessage: async (messageId: string) => {
+    const response = await satellite.put<Response<QueueMessageApi>>(
+      `/api/queue/message/${encodeURIComponent(messageId)}/ack`,
     );
     return response.data;
   },

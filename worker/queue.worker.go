@@ -233,6 +233,10 @@ func computeQueueDelay(q *queue.Queue) time.Duration {
 		return 0
 	}
 
+	if !q.IsSendNow || !q.IsUseDelay {
+		return 0
+	}
+
 	// Use new explicit delay fields
 	if !q.IsRandomDelay {
 		// Fixed delay

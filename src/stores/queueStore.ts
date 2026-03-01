@@ -62,6 +62,7 @@ function mapQueueApiToItem(q: QueueApi): Queue {
     ),
     isSendNow: q.is_send_now,
     sendLaterTime: q.send_later_time ?? undefined,
+    isUseDelay: q.is_use_delay,
     isRandomDelay: q.is_random_delay,
     delaySec: q.delay_sec,
     delayStart: q.delay_start,

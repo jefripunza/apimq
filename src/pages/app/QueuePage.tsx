@@ -53,7 +53,7 @@ export default function QueuePage() {
   // Timing fields
   const [newIsSendNow, setNewIsSendNow] = useState(true);
   const [newSendLaterTime, setNewSendLaterTime] = useState("");
-  // Delay fields
+  const [newIsUseDelay, setNewIsUseDelay] = useState(true);
   const [newIsRandomDelay, setNewIsRandomDelay] = useState(false);
   const [newDelaySec, setNewDelaySec] = useState("");
   const [newDelayStart, setNewDelayStart] = useState("");
@@ -74,6 +74,7 @@ export default function QueuePage() {
     setNewHeaders([]);
     setNewIsSendNow(true);
     setNewSendLaterTime("");
+    setNewIsUseDelay(true);
     setNewIsRandomDelay(false);
     setNewDelaySec("");
     setNewDelayStart("");
@@ -152,6 +153,7 @@ export default function QueuePage() {
         !newIsSendNow && newSendLaterTime
           ? computeNextSendLaterISO(newSendLaterTime)
           : undefined,
+      isUseDelay: newIsSendNow ? newIsUseDelay : false,
       isRandomDelay: newIsRandomDelay,
       delaySec: !newIsRandomDelay ? Number(newDelaySec || 0) : 0,
       delayStart: newIsRandomDelay ? Number(newDelayStart || 0) : 0,
@@ -196,10 +198,29 @@ export default function QueuePage() {
     }
   };
 
+  const handleAckMessage = async (messageId: string) => {
+    try {
+      const res = await queueService.ackMessage(messageId);
+      if (res.status === 200) {
+        setFailedMessages((prev) => prev.filter((m) => m.id !== messageId));
+        fetchAllQueues();
+      }
+    } catch {
+      // silent fail
+    }
+  };
+
   const handleRetryAll = async () => {
     const ids = failedMessages.map((m) => m.id);
     for (const id of ids) {
       await handleRetryMessage(id);
+    }
+  };
+
+  const handleAckAll = async () => {
+    const ids = failedMessages.map((m) => m.id);
+    for (const id of ids) {
+      await handleAckMessage(id);
     }
   };
 
@@ -371,67 +392,89 @@ export default function QueuePage() {
 
               {/* Delay Section */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-dark-200 font-medium">
-                      Random Delay
-                    </p>
-                    <p className="text-xs text-dark-400 font-mono">
-                      Add random delay between messages
-                    </p>
-                  </div>
-                  <Switch
-                    checked={newIsRandomDelay}
-                    onCheckedChange={setNewIsRandomDelay}
-                  />
-                </div>
-
-                {newIsRandomDelay ? (
-                  <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
+                {newIsSendNow && (
+                  <div className="flex items-center justify-between">
                     <div>
-                      <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                        Min seconds
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={newDelayStart}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setNewDelayStart(e.target.value)
-                        }
-                        className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                      />
+                      <p className="text-sm text-dark-200 font-medium">
+                        Use Delay
+                      </p>
+                      <p className="text-xs text-dark-400 font-mono">
+                        Enable delay settings for send-now queues
+                      </p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                        Max seconds
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={newDelayEnd}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setNewDelayEnd(e.target.value)
-                        }
-                        className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="pl-4 border-l-2 border-accent-500/30">
-                    <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                      Delay (seconds)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={newDelaySec}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setNewDelaySec(e.target.value)
-                      }
-                      className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                    <Switch
+                      checked={newIsUseDelay}
+                      onCheckedChange={setNewIsUseDelay}
                     />
                   </div>
+                )}
+
+                {newIsSendNow && newIsUseDelay && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-dark-200 font-medium">
+                          Random Delay
+                        </p>
+                        <p className="text-xs text-dark-400 font-mono">
+                          Add random delay between messages
+                        </p>
+                      </div>
+                      <Switch
+                        checked={newIsRandomDelay}
+                        onCheckedChange={setNewIsRandomDelay}
+                      />
+                    </div>
+
+                    {newIsRandomDelay ? (
+                      <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
+                        <div>
+                          <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                            Min seconds
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={newDelayStart}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                              setNewDelayStart(e.target.value)
+                            }
+                            className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                            Max seconds
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={newDelayEnd}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                              setNewDelayEnd(e.target.value)
+                            }
+                            className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="pl-4 border-l-2 border-accent-500/30">
+                        <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                          Delay (seconds)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={newDelaySec}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                            setNewDelaySec(e.target.value)
+                          }
+                          placeholder="0"
+                          className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -602,14 +645,48 @@ export default function QueuePage() {
                       )}
                       <details className="mt-2">
                         <summary className="text-xs text-dark-400 cursor-pointer hover:text-dark-200">
-                          View body
+                          View details
                         </summary>
-                        <pre className="text-xs text-dark-300 font-mono mt-1 p-2 bg-dark-900/60 rounded overflow-x-auto max-h-32">
-                          {msg.body}
-                        </pre>
+                        <div className="space-y-2 mt-2">
+                          {msg.query && (
+                            <div>
+                              <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
+                                Query
+                              </p>
+                              <pre className="text-xs text-dark-300 font-mono p-2 bg-dark-900/60 rounded overflow-x-auto max-h-24">
+                                {msg.query}
+                              </pre>
+                            </div>
+                          )}
+                          {msg.headers && (
+                            <div>
+                              <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
+                                Headers
+                              </p>
+                              <pre className="text-xs text-dark-300 font-mono p-2 bg-dark-900/60 rounded overflow-x-auto max-h-24">
+                                {msg.headers}
+                              </pre>
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
+                              Body
+                            </p>
+                            <pre className="text-xs text-dark-300 font-mono p-2 bg-dark-900/60 rounded overflow-x-auto max-h-32">
+                              {msg.body}
+                            </pre>
+                          </div>
+                        </div>
                       </details>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleAckMessage(msg.id)}
+                        className="px-3 py-1.5 text-xs font-semibold text-dark-200 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-lg transition-all"
+                      >
+                        Ack
+                      </button>
                       <button
                         type="button"
                         disabled={retryingIds.has(msg.id)}
@@ -637,6 +714,14 @@ export default function QueuePage() {
               className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
             >
               Close
+            </button>
+            <button
+              type="button"
+              disabled={!errorsQueue || failedMessages.length === 0}
+              onClick={handleAckAll}
+              className="px-5 py-2.5 text-sm font-semibold text-dark-200 hover:text-foreground bg-dark-700/40 hover:bg-dark-700/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
+            >
+              Ack All
             </button>
             <button
               type="button"
