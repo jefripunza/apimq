@@ -1,31 +1,13 @@
+import type { Queue, QueueError } from "@/types/queue";
 import { create } from "zustand";
-
-export interface QueueItem {
-  name: string;
-  key: string;
-  color: string;
-  enabled: boolean;
-  messages: number;
-  consumers: number;
-  publishRate: number;
-  deliverRate: number;
-  status: "running" | "idle" | "error";
-}
-
-export interface QueueErrorItem {
-  id: string;
-  at: string;
-  message: string;
-  detail?: string;
-}
 
 interface DashboardState {
   totalQueues: number;
   totalMessages: number;
   totalConsumers: number;
   messagesPerSecond: number;
-  queues: QueueItem[];
-  errorsByQueue: Record<string, QueueErrorItem[]>;
+  queues: Queue[];
+  errorsByQueue: Record<string, QueueError[]>;
   isLoading: boolean;
   setDashboardData: (data: Partial<DashboardState>) => void;
   setLoading: (loading: boolean) => void;
@@ -41,87 +23,9 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
   totalMessages: 48_392,
   totalConsumers: 8,
   messagesPerSecond: 1_247,
-  queues: [
-    {
-      name: "order.processing",
-      key: "order.processing",
-      color: "#6366f1",
-      enabled: true,
-      messages: 1_243,
-      consumers: 3,
-      publishRate: 120,
-      deliverRate: 115,
-      status: "running",
-    },
-    {
-      name: "email.notifications",
-      key: "email.notifications",
-      color: "#22c55e",
-      enabled: true,
-      messages: 892,
-      consumers: 2,
-      publishRate: 85,
-      deliverRate: 80,
-      status: "running",
-    },
-    {
-      name: "payment.webhook",
-      key: "payment.webhook",
-      color: "#06b6d4",
-      enabled: true,
-      messages: 456,
-      consumers: 1,
-      publishRate: 45,
-      deliverRate: 44,
-      status: "running",
-    },
-    {
-      name: "analytics.events",
-      key: "analytics.events",
-      color: "#eab308",
-      enabled: true,
-      messages: 12_304,
-      consumers: 4,
-      publishRate: 340,
-      deliverRate: 320,
-      status: "running",
-    },
-    {
-      name: "user.registration",
-      key: "user.registration",
-      color: "#f97316",
-      enabled: false,
-      messages: 23,
-      consumers: 1,
-      publishRate: 5,
-      deliverRate: 5,
-      status: "idle",
-    },
-    {
-      name: "inventory.sync",
-      key: "inventory.sync",
-      color: "#ec4899",
-      enabled: true,
-      messages: 8_901,
-      consumers: 0,
-      publishRate: 200,
-      deliverRate: 0,
-      status: "error",
-    },
-    {
-      name: "log.aggregation",
-      key: "log.aggregation",
-      color: "#a855f7",
-      enabled: true,
-      messages: 24_573,
-      consumers: 2,
-      publishRate: 452,
-      deliverRate: 430,
-      status: "running",
-    },
-  ],
+  queues: [],
   errorsByQueue: {
-    "inventory.sync": [
+    test: [
       {
         id: "err_1",
         at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),

@@ -5,11 +5,8 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
-import {
-  useDashboardStore,
-  type QueueErrorItem,
-} from "@/stores/dashboardStore";
-import { useQueueStore, type QueueItem } from "@/stores/queueStore";
+import { useDashboardStore } from "@/stores/dashboardStore";
+import { useQueueStore } from "@/stores/queueStore";
 import { Plus } from "lucide-react";
 import {
   Dialog,
@@ -24,7 +21,13 @@ import { Switch } from "@/components/ui/switch";
 import { uid } from "@/utils/random";
 import { formatDate } from "@/utils/datetime";
 import QueueCard from "@/components/QueueCard";
-import type { HeaderEntry, KeyStatus, SchemaType } from "@/types/queue";
+import type {
+  HeaderEntry,
+  KeyStatus,
+  SchemaType,
+  Queue,
+  QueueError,
+} from "@/types/queue";
 
 export default function QueuePage() {
   const {
@@ -47,7 +50,7 @@ export default function QueuePage() {
   }, [fetchAllQueues]);
 
   const [isErrorsOpen, setIsErrorsOpen] = useState(false);
-  const [errorsQueue, setErrorsQueue] = useState<QueueItem | null>(null);
+  const [errorsQueue, setErrorsQueue] = useState<Queue | null>(null);
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newKey, setNewKey] = useState("");
@@ -155,7 +158,7 @@ export default function QueuePage() {
     resetNewQueueForm();
   };
 
-  const currentErrors: QueueErrorItem[] = errorsQueue
+  const currentErrors: QueueError[] = errorsQueue
     ? (errorsByQueue[errorsQueue.key] ?? [])
     : [];
 

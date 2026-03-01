@@ -6,38 +6,10 @@ import {
   type UpdateQueuePayload,
 } from "@/services/queue.service";
 import type { AxiosError } from "axios";
+import type { Queue } from "@/types/queue";
+import { safeJsonParse } from "@/utils/data";
 
-export type QueueItem = {
-  id: string;
-  name: string;
-  key: string;
-  color: string;
-  enabled: boolean;
-  messages: number;
-  consumers: number;
-  publishRate: number;
-  deliverRate: number;
-  status: "running" | "idle" | "error";
-  origin: string;
-  batchCount: number;
-  headers: Array<{ key: string; value: string }>;
-  schema: string;
-  schemaConfig: Record<string, unknown>;
-  errorTrace: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
-};
-
-function safeJsonParse<T>(input: string | null | undefined, fallback: T): T {
-  if (!input) return fallback;
-  try {
-    return JSON.parse(input) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function mapQueueApiToItem(q: QueueApi): QueueItem {
+function mapQueueApiToItem(q: QueueApi): Queue {
   return {
     id: q.id,
     name: q.name,
@@ -64,12 +36,12 @@ function mapQueueApiToItem(q: QueueApi): QueueItem {
 }
 
 interface QueueState {
-  items: QueueItem[];
+  items: Queue[];
   isLoading: boolean;
   error: string | null;
 
   fetchAll: () => Promise<boolean>;
-  fetchByKey: (key: string) => Promise<QueueItem | null>;
+  fetchByKey: (key: string) => Promise<Queue | null>;
   checkKeyAvailable: (key: string) => Promise<boolean>;
   create: (payload: CreateQueuePayload) => Promise<boolean>;
   update: (key: string, payload: UpdateQueuePayload) => Promise<boolean>;
