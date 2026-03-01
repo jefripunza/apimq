@@ -1,4 +1,4 @@
-export type SchemaType = "" | "delay" | "timing";
+// Schema types removed - now using explicit fields
 
 export interface HeaderEntry {
   id: string;
@@ -26,8 +26,12 @@ export type Queue = {
   batchCount?: number;
   timeout?: number;
   headers?: Array<{ key: string; value: string }>;
-  schema?: string;
-  schemaConfig?: Record<string, unknown>;
+  isSendNow?: boolean;
+  sendLaterTime?: string;
+  isRandomDelay?: boolean;
+  delaySec?: number;
+  delayStart?: number;
+  delayEnd?: number;
   errorTrace?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;

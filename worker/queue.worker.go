@@ -232,29 +232,19 @@ func computeQueueDelay(q *queue.Queue) time.Duration {
 	if q == nil {
 		return 0
 	}
-	if strings.ToLower(strings.TrimSpace(q.Schema)) != "delay" {
-		return 0
-	}
-	if strings.TrimSpace(q.SchemaConfig) == "" {
-		return 0
-	}
 
-	var cfg map[string]interface{}
-	if err := json.Unmarshal([]byte(q.SchemaConfig), &cfg); err != nil {
-		return 0
-	}
-
-	random := asBool(cfg["random"])
-	if !random {
-		sec := asInt(cfg["sec"])
-		if sec <= 0 {
+	// Use new explicit delay fields
+	if !q.IsRandomDelay {
+		// Fixed delay
+		if q.DelaySec <= 0 {
 			return 0
 		}
-		return time.Duration(sec) * time.Second
+		return time.Duration(q.DelaySec) * time.Second
 	}
 
-	min := asInt(cfg["min"])
-	max := asInt(cfg["max"])
+	// Random delay between DelayStart and DelayEnd
+	min := q.DelayStart
+	max := q.DelayEnd
 	if min < 0 {
 		min = 0
 	}
@@ -270,40 +260,6 @@ func computeQueueDelay(q *queue.Queue) time.Duration {
 		return 0
 	}
 	return time.Duration(sec) * time.Second
-}
-
-func asBool(v interface{}) bool {
-	b, ok := v.(bool)
-	if ok {
-		return b
-	}
-	return false
-}
-
-func asInt(v interface{}) int {
-	switch x := v.(type) {
-	case float64:
-		return int(x)
-	case float32:
-		return int(x)
-	case int:
-		return x
-	case int64:
-		return int(x)
-	case int32:
-		return int(x)
-	case uint:
-		return int(x)
-	case uint64:
-		return int(x)
-	case uint32:
-		return int(x)
-	case json.Number:
-		i, _ := x.Int64()
-		return int(i)
-	default:
-		return 0
-	}
 }
 
 // ─── process a single message ───────────────────────────────────────────────

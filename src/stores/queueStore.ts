@@ -11,41 +11,33 @@ import { safeJsonParse } from "@/utils/data";
 
 function mapQueueApiToItem(q: QueueApi): Queue {
   const batchCount = q.batch_count ?? 1;
-  const schema = (q.schema ?? "").toLowerCase();
-  const schemaConfig = safeJsonParse<Record<string, unknown>>(
-    q.schema_config,
-    {},
-  );
 
-  let throughput_sec = "1";
-  if (schema === "delay") {
-    const random = Boolean((schemaConfig as { random?: unknown }).random);
-    if (!random) {
-      const sec = Number((schemaConfig as { sec?: unknown }).sec ?? 0);
-      throughput_sec = `${batchCount}/${Math.max(1, sec || 1)}s`;
-    } else {
-      const min = Number((schemaConfig as { min?: unknown }).min ?? 1);
-      const max = Number((schemaConfig as { max?: unknown }).max ?? min);
-      const a = Math.max(1, Math.min(min || 1, max || 1));
-      const b = Math.max(a, max || a);
-      throughput_sec = `${batchCount}/${a}-${b}s`;
-    }
-  } else if (schema === "timing") {
-    const datetime = String(
-      (schemaConfig as { datetime?: unknown }).datetime ?? "",
-    );
-    let date = datetime;
+  // Compute throughput_sec from new explicit fields
+  let throughput_sec = `${batchCount}/1s`;
+
+  // Delay display
+  if (q.is_random_delay) {
+    const min = Math.max(1, q.delay_start || 1);
+    const max = Math.max(min, q.delay_end || min);
+    throughput_sec = `${batchCount}/${min}-${max}s`;
+  } else if (q.delay_sec > 0) {
+    throughput_sec = `${batchCount}/${q.delay_sec}s`;
+  }
+
+  // Timing display (append if not send now)
+  if (!q.is_send_now && q.send_later_time) {
+    let time = q.send_later_time;
     try {
-      const d = new Date(datetime);
+      const d = new Date(q.send_later_time);
       if (!Number.isNaN(d.getTime())) {
-        date = d.toISOString().slice(0, 10).replaceAll("-", "/");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        time = `${hh}:${mm}`;
       }
     } catch {
       // keep raw
     }
-    throughput_sec = `${batchCount} on ${date}`;
-  } else {
-    throughput_sec = `${batchCount}/1s`;
+    throughput_sec = `${throughput_sec} at ${time}`;
   }
 
   return {
@@ -67,8 +59,12 @@ function mapQueueApiToItem(q: QueueApi): Queue {
       q.headers,
       [],
     ),
-    schema: q.schema,
-    schemaConfig,
+    isSendNow: q.is_send_now,
+    sendLaterTime: q.send_later_time ?? undefined,
+    isRandomDelay: q.is_random_delay,
+    delaySec: q.delay_sec,
+    delayStart: q.delay_start,
+    delayEnd: q.delay_end,
     errorTrace: safeJsonParse<Record<string, unknown>>(q.error_trace, {}),
     createdAt: q.created_at,
     updatedAt: q.updated_at,

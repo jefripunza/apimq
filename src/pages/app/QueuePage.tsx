@@ -21,13 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { uid } from "@/utils/random";
 import { formatDate } from "@/utils/datetime";
 import QueueCard from "@/components/QueueCard";
-import type {
-  HeaderEntry,
-  KeyStatus,
-  SchemaType,
-  Queue,
-  QueueError,
-} from "@/types/queue";
+import type { HeaderEntry, KeyStatus, Queue, QueueError } from "@/types/queue";
 
 export default function QueuePage() {
   const {
@@ -58,12 +52,15 @@ export default function QueuePage() {
   const [newBatchCount, setNewBatchCount] = useState("1");
   const [newTimeout, setNewTimeout] = useState("30");
   const [newHeaders, setNewHeaders] = useState<HeaderEntry[]>([]);
-  const [newSchema, setNewSchema] = useState<SchemaType>("");
-  const [newDelayRandom, setNewDelayRandom] = useState(false);
+  // Timing fields
+  const [newIsSendNow, setNewIsSendNow] = useState(true);
+  const [newSendLaterTime, setNewSendLaterTime] = useState("");
+  // Delay fields
+  const [newIsRandomDelay, setNewIsRandomDelay] = useState(false);
   const [newDelaySec, setNewDelaySec] = useState("");
-  const [newDelaySecMin, setNewDelaySecMin] = useState("");
-  const [newDelaySecMax, setNewDelaySecMax] = useState("");
-  const [newTimingDatetime, setNewTimingDatetime] = useState("");
+  const [newDelayStart, setNewDelayStart] = useState("");
+  const [newDelayEnd, setNewDelayEnd] = useState("");
+  // Error trace
   const [newErrorTrace, setNewErrorTrace] = useState(false);
   const [newErrorWebhook, setNewErrorWebhook] = useState("");
 
@@ -77,12 +74,12 @@ export default function QueuePage() {
     setNewBatchCount("1");
     setNewTimeout("30");
     setNewHeaders([]);
-    setNewSchema("");
-    setNewDelayRandom(false);
+    setNewIsSendNow(true);
+    setNewSendLaterTime("");
+    setNewIsRandomDelay(false);
     setNewDelaySec("");
-    setNewDelaySecMin("");
-    setNewDelaySecMax("");
-    setNewTimingDatetime("");
+    setNewDelayStart("");
+    setNewDelayEnd("");
     setNewErrorTrace(false);
     setNewErrorWebhook("");
     setNewKeyStatus("idle");
@@ -120,21 +117,23 @@ export default function QueuePage() {
     e.preventDefault();
     if (newKeyStatus === "taken") return;
 
-    const schemaConfig: Record<string, unknown> = {};
-    if (newSchema === "delay") {
-      if (newDelayRandom) {
-        schemaConfig.random = true;
-        schemaConfig.min = Number(newDelaySecMin || 0);
-        schemaConfig.max = Number(newDelaySecMax || 0);
-      } else {
-        schemaConfig.random = false;
-        schemaConfig.sec = Number(newDelaySec || 0);
-      }
-    }
+    const computeNextSendLaterISO = (timeStr: string) => {
+      // Expect HH:MM
+      if (!timeStr || !timeStr.includes(":")) return undefined;
+      const [hhStr, mmStr] = timeStr.split(":");
+      const hh = Number(hhStr);
+      const mm = Number(mmStr);
+      if (Number.isNaN(hh) || Number.isNaN(mm)) return undefined;
 
-    if (newSchema === "timing") {
-      schemaConfig.datetime = newTimingDatetime;
-    }
+      const now = new Date();
+      const next = new Date(now);
+      next.setSeconds(0, 0);
+      next.setHours(hh, mm, 0, 0);
+      if (next.getTime() <= now.getTime()) {
+        next.setDate(next.getDate() + 1);
+      }
+      return next.toISOString();
+    };
 
     const errorTrace: Record<string, unknown> = {};
     if (newErrorTrace) {
@@ -150,8 +149,15 @@ export default function QueuePage() {
       headers: newHeaders
         .filter((h) => h.key.trim())
         .map((h) => ({ key: h.key.trim(), value: h.value.trim() })),
-      schema: newSchema,
-      schemaConfig,
+      isSendNow: newIsSendNow,
+      sendLaterTime:
+        !newIsSendNow && newSendLaterTime
+          ? computeNextSendLaterISO(newSendLaterTime)
+          : undefined,
+      isRandomDelay: newIsRandomDelay,
+      delaySec: !newIsRandomDelay ? Number(newDelaySec || 0) : 0,
+      delayStart: newIsRandomDelay ? Number(newDelayStart || 0) : 0,
+      delayEnd: newIsRandomDelay ? Number(newDelayEnd || 0) : 0,
       errorTrace,
     });
 
@@ -293,117 +299,109 @@ export default function QueuePage() {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                    Delivery Schema<span className="text-neon-red ml-1">*</span>
-                  </label>
-                  <select
-                    value={newSchema}
-                    onChange={(e) => {
-                      setNewSchema(e.target.value as SchemaType);
-                      setNewDelayRandom(false);
-                      setNewDelaySec("");
-                      setNewDelaySecMin("");
-                      setNewDelaySecMax("");
-                      setNewTimingDatetime("");
-                    }}
-                    className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                    required
-                  >
-                    <option value="">— Select —</option>
-                    <option value="delay">Delay</option>
-                    <option value="timing">Timing</option>
-                  </select>
-                </div>
               </div>
 
-              {newSchema === "delay" && (
-                <div className="space-y-3 pl-4 border-l-2 border-accent-500/30">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-dark-200 font-medium">
-                        Random delay
-                      </p>
-                      <p className="text-xs text-dark-400 font-mono">
-                        Randomize delay seconds range
-                      </p>
-                    </div>
-                    <Switch
-                      checked={newDelayRandom}
-                      onCheckedChange={setNewDelayRandom}
+              {/* Timing Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-dark-200 font-medium">
+                      Send Now
+                    </p>
+                    <p className="text-xs text-dark-400 font-mono">
+                      Send messages immediately when added
+                    </p>
+                  </div>
+                  <Switch
+                    checked={newIsSendNow}
+                    onCheckedChange={setNewIsSendNow}
+                  />
+                </div>
+
+                {!newIsSendNow && (
+                  <div className="pl-4 border-l-2 border-accent-500/30">
+                    <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                      Scheduled Time
+                      <span className="text-neon-red ml-1">*</span>
+                    </label>
+                    <input
+                      type="time"
+                      value={newSendLaterTime}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setNewSendLaterTime(e.target.value)
+                      }
+                      className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                      required
                     />
                   </div>
+                )}
+              </div>
 
-                  {newDelayRandom ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                          Min seconds
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          value={newDelaySecMin}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                            setNewDelaySecMin(e.target.value)
-                          }
-                          className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                          Max seconds
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          value={newDelaySecMax}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                            setNewDelaySecMax(e.target.value)
-                          }
-                          className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                          required
-                        />
-                      </div>
-                    </div>
-                  ) : (
+              {/* Delay Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-dark-200 font-medium">
+                      Random Delay
+                    </p>
+                    <p className="text-xs text-dark-400 font-mono">
+                      Add random delay between messages
+                    </p>
+                  </div>
+                  <Switch
+                    checked={newIsRandomDelay}
+                    onCheckedChange={setNewIsRandomDelay}
+                  />
+                </div>
+
+                {newIsRandomDelay ? (
+                  <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
                     <div>
                       <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                        Delay (seconds)
+                        Min seconds
                       </label>
                       <input
                         type="number"
                         min={0}
-                        value={newDelaySec}
+                        value={newDelayStart}
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setNewDelaySec(e.target.value)
+                          setNewDelayStart(e.target.value)
                         }
                         className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                        required
                       />
                     </div>
-                  )}
-                </div>
-              )}
-
-              {newSchema === "timing" && (
-                <div className="pl-4 border-l-2 border-accent-500/30">
-                  <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                    Scheduled Date & Time
-                    <span className="text-neon-red ml-1">*</span>
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={newTimingDatetime}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      setNewTimingDatetime(e.target.value)
-                    }
-                    className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                    required
-                  />
-                </div>
-              )}
+                    <div>
+                      <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                        Max seconds
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={newDelayEnd}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setNewDelayEnd(e.target.value)
+                        }
+                        className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pl-4 border-l-2 border-accent-500/30">
+                    <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                      Delay (seconds)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={newDelaySec}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setNewDelaySec(e.target.value)
+                      }
+                      className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                    />
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

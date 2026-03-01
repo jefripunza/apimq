@@ -5,33 +5,42 @@ import (
 	"apimq/variable"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type CreateQueueRequest struct {
-	Name         string                 `json:"name"`
-	Key          string                 `json:"key"`
-	Color        string                 `json:"color"`
-	Origin       string                 `json:"origin"`
-	BatchCount   int                    `json:"batchCount"`
-	Timeout      int                    `json:"timeout"`
-	Headers      []map[string]string    `json:"headers"`
-	Schema       string                 `json:"schema"`
-	SchemaConfig map[string]interface{} `json:"schemaConfig,omitempty"`
-	ErrorTrace   map[string]interface{} `json:"errorTrace,omitempty"`
+	Name          string                 `json:"name"`
+	Key           string                 `json:"key"`
+	Color         string                 `json:"color"`
+	Origin        string                 `json:"origin"`
+	BatchCount    int                    `json:"batchCount"`
+	Timeout       int                    `json:"timeout"`
+	Headers       []map[string]string    `json:"headers"`
+	IsSendNow     bool                   `json:"isSendNow"`
+	SendLaterTime *string                `json:"sendLaterTime,omitempty"`
+	IsRandomDelay bool                   `json:"isRandomDelay"`
+	DelaySec      int                    `json:"delaySec"`
+	DelayStart    int                    `json:"delayStart"`
+	DelayEnd      int                    `json:"delayEnd"`
+	ErrorTrace    map[string]interface{} `json:"errorTrace,omitempty"`
 }
 
 type UpdateQueueRequest struct {
-	Name         string                 `json:"name"`
-	Color        string                 `json:"color"`
-	Origin       string                 `json:"origin"`
-	BatchCount   int                    `json:"batchCount"`
-	Timeout      int                    `json:"timeout"`
-	Headers      []map[string]string    `json:"headers"`
-	Schema       string                 `json:"schema"`
-	SchemaConfig map[string]interface{} `json:"schemaConfig,omitempty"`
-	ErrorTrace   map[string]interface{} `json:"errorTrace,omitempty"`
+	Name          string                 `json:"name"`
+	Color         string                 `json:"color"`
+	Origin        string                 `json:"origin"`
+	BatchCount    int                    `json:"batchCount"`
+	Timeout       int                    `json:"timeout"`
+	Headers       []map[string]string    `json:"headers"`
+	IsSendNow     bool                   `json:"isSendNow"`
+	SendLaterTime *string                `json:"sendLaterTime,omitempty"`
+	IsRandomDelay bool                   `json:"isRandomDelay"`
+	DelaySec      int                    `json:"delaySec"`
+	DelayStart    int                    `json:"delayStart"`
+	DelayEnd      int                    `json:"delayEnd"`
+	ErrorTrace    map[string]interface{} `json:"errorTrace,omitempty"`
 }
 
 type ToggleQueueRequest struct {
@@ -63,21 +72,33 @@ func Create(c *fiber.Ctx) error {
 
 	// Marshal JSON fields
 	headersJSON, _ := json.Marshal(req.Headers)
-	schemaConfigJSON, _ := json.Marshal(req.SchemaConfig)
 	errorTraceJSON, _ := json.Marshal(req.ErrorTrace)
 
+	// Parse send later time if provided
+	var sendLaterTime *time.Time
+	if req.SendLaterTime != nil && *req.SendLaterTime != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.SendLaterTime)
+		if err == nil {
+			sendLaterTime = &parsed
+		}
+	}
+
 	queue := Queue{
-		Name:         req.Name,
-		Key:          req.Key,
-		Color:        req.Color,
-		Origin:       req.Origin,
-		BatchCount:   req.BatchCount,
-		Timeout:      req.Timeout,
-		Headers:      string(headersJSON),
-		Schema:       req.Schema,
-		SchemaConfig: string(schemaConfigJSON),
-		ErrorTrace:   string(errorTraceJSON),
-		Enabled:      true,
+		Name:          req.Name,
+		Key:           req.Key,
+		Color:         req.Color,
+		Origin:        req.Origin,
+		BatchCount:    req.BatchCount,
+		Timeout:       req.Timeout,
+		Headers:       string(headersJSON),
+		IsSendNow:     req.IsSendNow,
+		SendLaterTime: sendLaterTime,
+		IsRandomDelay: req.IsRandomDelay,
+		DelaySec:      req.DelaySec,
+		DelayStart:    req.DelayStart,
+		DelayEnd:      req.DelayEnd,
+		ErrorTrace:    string(errorTraceJSON),
+		Enabled:       true,
 	}
 
 	if req.BatchCount == 0 {
@@ -172,8 +193,16 @@ func Update(c *fiber.Ctx) error {
 
 	// Marshal JSON fields
 	headersJSON, _ := json.Marshal(req.Headers)
-	schemaConfigJSON, _ := json.Marshal(req.SchemaConfig)
 	errorTraceJSON, _ := json.Marshal(req.ErrorTrace)
+
+	// Parse send later time if provided
+	var sendLaterTime *time.Time
+	if req.SendLaterTime != nil && *req.SendLaterTime != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.SendLaterTime)
+		if err == nil {
+			sendLaterTime = &parsed
+		}
+	}
 
 	queue.Name = req.Name
 	queue.Color = req.Color
@@ -181,8 +210,12 @@ func Update(c *fiber.Ctx) error {
 	queue.BatchCount = req.BatchCount
 	queue.Timeout = req.Timeout
 	queue.Headers = string(headersJSON)
-	queue.Schema = req.Schema
-	queue.SchemaConfig = string(schemaConfigJSON)
+	queue.IsSendNow = req.IsSendNow
+	queue.SendLaterTime = sendLaterTime
+	queue.IsRandomDelay = req.IsRandomDelay
+	queue.DelaySec = req.DelaySec
+	queue.DelayStart = req.DelayStart
+	queue.DelayEnd = req.DelayEnd
 	queue.ErrorTrace = string(errorTraceJSON)
 
 	if req.BatchCount == 0 {

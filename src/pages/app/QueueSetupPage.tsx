@@ -10,7 +10,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { uid } from "@/utils/random";
-import type { HeaderEntry, KeyStatus, SchemaType } from "@/types/queue";
+import type { HeaderEntry, KeyStatus } from "@/types/queue";
 import SectionTitle from "@/components/SectionTitle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,17 +53,17 @@ export default function QueueSetupPage() {
   // headers
   const [headers, setHeaders] = useState<HeaderEntry[]>([]);
 
-  // schema
-  const [schema, setSchema] = useState<SchemaType>("");
+  // batch/timeout
   const [batchCount, setBatchCount] = useState("1");
   const [timeout, setTimeout] = useState("30");
-  // delay sub-fields
-  const [delayRandom, setDelayRandom] = useState(false);
+  // timing fields
+  const [isSendNow, setIsSendNow] = useState(true);
+  const [sendLaterTime, setSendLaterTime] = useState("");
+  // delay fields
+  const [isRandomDelay, setIsRandomDelay] = useState(false);
   const [delaySec, setDelaySec] = useState("");
-  const [delaySecMin, setDelaySecMin] = useState("");
-  const [delaySecMax, setDelaySecMax] = useState("");
-  // timing sub-fields
-  const [timingDatetime, setTimingDatetime] = useState("");
+  const [delayStart, setDelayStart] = useState("");
+  const [delayEnd, setDelayEnd] = useState("");
 
   // error trace
   const [errorTrace, setErrorTrace] = useState(false);
@@ -88,12 +88,12 @@ export default function QueueSetupPage() {
           batchCount?: string;
           timeout?: string;
           headers?: Array<{ key: string; value: string }>;
-          schema?: SchemaType;
-          delayRandom?: boolean;
+          isSendNow?: boolean;
+          sendLaterTime?: string;
+          isRandomDelay?: boolean;
           delaySec?: string;
-          delaySecMin?: string;
-          delaySecMax?: string;
-          timingDatetime?: string;
+          delayStart?: string;
+          delayEnd?: string;
           errorTrace?: boolean;
           errorWebhook?: string;
         };
@@ -120,23 +120,15 @@ export default function QueueSetupPage() {
       );
     }
 
-    if (
-      prefill.schema === "delay" ||
-      prefill.schema === "timing" ||
-      prefill.schema === ""
-    ) {
-      setSchema(prefill.schema);
-    }
-
-    if (typeof prefill.delayRandom === "boolean")
-      setDelayRandom(prefill.delayRandom);
+    if (typeof prefill.isSendNow === "boolean") setIsSendNow(prefill.isSendNow);
+    if (typeof prefill.sendLaterTime === "string")
+      setSendLaterTime(prefill.sendLaterTime);
+    if (typeof prefill.isRandomDelay === "boolean")
+      setIsRandomDelay(prefill.isRandomDelay);
     if (typeof prefill.delaySec === "string") setDelaySec(prefill.delaySec);
-    if (typeof prefill.delaySecMin === "string")
-      setDelaySecMin(prefill.delaySecMin);
-    if (typeof prefill.delaySecMax === "string")
-      setDelaySecMax(prefill.delaySecMax);
-    if (typeof prefill.timingDatetime === "string")
-      setTimingDatetime(prefill.timingDatetime);
+    if (typeof prefill.delayStart === "string")
+      setDelayStart(prefill.delayStart);
+    if (typeof prefill.delayEnd === "string") setDelayEnd(prefill.delayEnd);
 
     if (typeof prefill.errorTrace === "boolean")
       setErrorTrace(prefill.errorTrace);
@@ -162,34 +154,22 @@ export default function QueueSetupPage() {
         })),
       );
 
-      const sc = existing.schemaConfig ?? {};
-      const et = existing.errorTrace ?? {};
-      const schemaValue = (existing.schema ?? "") as SchemaType;
-      if (
-        schemaValue === "delay" ||
-        schemaValue === "timing" ||
-        schemaValue === ""
-      ) {
-        setSchema(schemaValue);
-      }
-
-      if (schemaValue === "delay") {
-        const random = Boolean((sc as { random?: unknown }).random);
-        setDelayRandom(random);
-        if (random) {
-          setDelaySecMin(String((sc as { min?: unknown }).min ?? ""));
-          setDelaySecMax(String((sc as { max?: unknown }).max ?? ""));
-        } else {
-          setDelaySec(String((sc as { sec?: unknown }).sec ?? ""));
+      // Load new explicit fields
+      setIsSendNow(existing.isSendNow ?? true);
+      if (existing.sendLaterTime) {
+        const d = new Date(existing.sendLaterTime);
+        if (!Number.isNaN(d.getTime())) {
+          const hh = String(d.getHours()).padStart(2, "0");
+          const mm = String(d.getMinutes()).padStart(2, "0");
+          setSendLaterTime(`${hh}:${mm}`);
         }
       }
+      setIsRandomDelay(existing.isRandomDelay ?? false);
+      setDelaySec(String(existing.delaySec ?? ""));
+      setDelayStart(String(existing.delayStart ?? ""));
+      setDelayEnd(String(existing.delayEnd ?? ""));
 
-      if (schemaValue === "timing") {
-        setTimingDatetime(
-          String((sc as { datetime?: unknown }).datetime ?? ""),
-        );
-      }
-
+      const et = existing.errorTrace ?? {};
       const webhook = String((et as { webhook?: unknown }).webhook ?? "");
       setErrorTrace(Boolean(webhook));
       setErrorWebhook(webhook);
@@ -212,34 +192,22 @@ export default function QueueSetupPage() {
         })),
       );
 
-      const sc = q.schemaConfig ?? {};
-      const et = q.errorTrace ?? {};
-      const schemaValue = (q.schema ?? "") as SchemaType;
-      if (
-        schemaValue === "delay" ||
-        schemaValue === "timing" ||
-        schemaValue === ""
-      ) {
-        setSchema(schemaValue);
-      }
-
-      if (schemaValue === "delay") {
-        const random = Boolean((sc as { random?: unknown }).random);
-        setDelayRandom(random);
-        if (random) {
-          setDelaySecMin(String((sc as { min?: unknown }).min ?? ""));
-          setDelaySecMax(String((sc as { max?: unknown }).max ?? ""));
-        } else {
-          setDelaySec(String((sc as { sec?: unknown }).sec ?? ""));
+      // Load new explicit fields
+      setIsSendNow(q.isSendNow ?? true);
+      if (q.sendLaterTime) {
+        const d = new Date(q.sendLaterTime);
+        if (!Number.isNaN(d.getTime())) {
+          const hh = String(d.getHours()).padStart(2, "0");
+          const mm = String(d.getMinutes()).padStart(2, "0");
+          setSendLaterTime(`${hh}:${mm}`);
         }
       }
+      setIsRandomDelay(q.isRandomDelay ?? false);
+      setDelaySec(String(q.delaySec ?? ""));
+      setDelayStart(String(q.delayStart ?? ""));
+      setDelayEnd(String(q.delayEnd ?? ""));
 
-      if (schemaValue === "timing") {
-        setTimingDatetime(
-          String((sc as { datetime?: unknown }).datetime ?? ""),
-        );
-      }
-
+      const et = q.errorTrace ?? {};
       const webhook = String((et as { webhook?: unknown }).webhook ?? "");
       setErrorTrace(Boolean(webhook));
       setErrorWebhook(webhook);
@@ -270,20 +238,23 @@ export default function QueueSetupPage() {
     setSubmitError("");
     setIsSubmitting(true);
     try {
-      const schemaConfig: Record<string, unknown> = {};
-      if (schema === "delay") {
-        if (delayRandom) {
-          schemaConfig.random = true;
-          schemaConfig.min = Number(delaySecMin || 0);
-          schemaConfig.max = Number(delaySecMax || 0);
-        } else {
-          schemaConfig.random = false;
-          schemaConfig.sec = Number(delaySec || 0);
+      const computeNextSendLaterISO = (timeStr: string) => {
+        // Expect HH:MM
+        if (!timeStr || !timeStr.includes(":")) return undefined;
+        const [hhStr, mmStr] = timeStr.split(":");
+        const hh = Number(hhStr);
+        const mm = Number(mmStr);
+        if (Number.isNaN(hh) || Number.isNaN(mm)) return undefined;
+
+        const now = new Date();
+        const next = new Date(now);
+        next.setSeconds(0, 0);
+        next.setHours(hh, mm, 0, 0);
+        if (next.getTime() <= now.getTime()) {
+          next.setDate(next.getDate() + 1);
         }
-      }
-      if (schema === "timing") {
-        schemaConfig.datetime = timingDatetime;
-      }
+        return next.toISOString();
+      };
 
       const errorTracePayload: Record<string, unknown> = {};
       if (errorTrace) {
@@ -298,8 +269,15 @@ export default function QueueSetupPage() {
         headers: headers
           .filter((h) => h.key.trim())
           .map((h) => ({ key: h.key.trim(), value: h.value.trim() })),
-        schema,
-        schemaConfig,
+        isSendNow,
+        sendLaterTime:
+          !isSendNow && sendLaterTime
+            ? computeNextSendLaterISO(sendLaterTime)
+            : undefined,
+        isRandomDelay,
+        delaySec: !isRandomDelay ? Number(delaySec || 0) : 0,
+        delayStart: isRandomDelay ? Number(delayStart || 0) : 0,
+        delayEnd: isRandomDelay ? Number(delayEnd || 0) : 0,
         errorTrace: errorTracePayload,
       };
 
@@ -551,114 +529,114 @@ export default function QueueSetupPage() {
           </div>
         </div>
 
-        {/* Schema */}
+        {/* Timing & Delay */}
         <div className="bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4">
-          <SectionTitle>Schema</SectionTitle>
+          <SectionTitle>Timing & Delay</SectionTitle>
 
-          <div>
-            <Label required>Delivery Schema</Label>
-            <select
-              value={schema}
-              onChange={(e) => {
-                setSchema(e.target.value as SchemaType);
-                setDelayRandom(false);
-                setDelaySec("");
-                setDelaySecMin("");
-                setDelaySecMax("");
-                setTimingDatetime("");
-              }}
-              className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-              required
-            >
-              <option value="">— None —</option>
-              <option value="delay">Delay</option>
-              <option value="timing">Timing</option>
-            </select>
+          {/* Timing Section */}
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={isSendNow}
+                  onChange={(e) => setIsSendNow(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-dark-600 peer-checked:bg-accent-500 rounded-full transition-colors" />
+                <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
+              </div>
+              <div>
+                <p className="text-sm text-dark-200 font-medium">Send Now</p>
+                <p className="text-xs text-dark-400 font-mono">
+                  Send messages immediately when added
+                </p>
+              </div>
+            </label>
+
+            {!isSendNow && (
+              <div className="pl-4 border-l-2 border-accent-500/30">
+                <Label required>Scheduled Time</Label>
+                <Input
+                  type="time"
+                  value={sendLaterTime}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setSendLaterTime(e.target.value)
+                  }
+                  required
+                />
+                <p className="text-[11px] text-dark-400 font-mono mt-1">
+                  Messages will be delivered at this time.
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Delay sub-form */}
-          {schema === "delay" && (
-            <div className="space-y-3 pl-4 border-l-2 border-accent-500/30">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={delayRandom}
-                    onChange={(e) => setDelayRandom(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-dark-600 peer-checked:bg-accent-500 rounded-full transition-colors" />
-                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
-                </div>
-                <span className="text-sm text-dark-200 font-medium">
-                  Random delay
-                </span>
-              </label>
+          {/* Delay Section */}
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={isRandomDelay}
+                  onChange={(e) => setIsRandomDelay(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-dark-600 peer-checked:bg-accent-500 rounded-full transition-colors" />
+                <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
+              </div>
+              <div>
+                <p className="text-sm text-dark-200 font-medium">
+                  Random Delay
+                </p>
+                <p className="text-xs text-dark-400 font-mono">
+                  Add random delay between messages
+                </p>
+              </div>
+            </label>
 
-              {delayRandom ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Min seconds</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={delaySecMin}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setDelaySecMin(e.target.value)
-                      }
-                      placeholder="1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Max seconds</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={delaySecMax}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setDelaySecMax(e.target.value)
-                      }
-                      placeholder="60"
-                      required
-                    />
-                  </div>
-                </div>
-              ) : (
+            {isRandomDelay ? (
+              <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
                 <div>
-                  <Label>Delay (seconds)</Label>
+                  <Label>Min seconds</Label>
                   <Input
                     type="number"
                     min={0}
-                    value={delaySec}
+                    value={delayStart}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      setDelaySec(e.target.value)
+                      setDelayStart(e.target.value)
                     }
-                    placeholder="30"
-                    required
+                    placeholder="1"
                   />
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Timing sub-form */}
-          {schema === "timing" && (
-            <div className="pl-4 border-l-2 border-accent-500/30">
-              <Label required>Scheduled Date & Time</Label>
-              <Input
-                type="datetime-local"
-                value={timingDatetime}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setTimingDatetime(e.target.value)
-                }
-                required
-              />
-              <p className="text-[11px] text-dark-400 font-mono mt-1">
-                Messages will be delivered at this exact date and time.
-              </p>
-            </div>
-          )}
+                <div>
+                  <Label>Max seconds</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={delayEnd}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setDelayEnd(e.target.value)
+                    }
+                    placeholder="60"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="pl-4 border-l-2 border-accent-500/30">
+                <Label>Delay (seconds)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={delaySec}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setDelaySec(e.target.value)
+                  }
+                  placeholder="0"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Error Trace */}

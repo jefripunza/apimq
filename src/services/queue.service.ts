@@ -12,8 +12,12 @@ export interface QueueApi {
   batch_count: number;
   timeout: number;
   headers: string;
-  schema: string;
-  schema_config: string;
+  is_send_now: boolean;
+  send_later_time: string | null;
+  is_random_delay: boolean;
+  delay_sec: number;
+  delay_start: number;
+  delay_end: number;
   error_trace: string;
   created_at: string;
   updated_at: string;
@@ -27,8 +31,12 @@ export type CreateQueuePayload = {
   batchCount?: number;
   timeout?: number;
   headers?: Array<{ key: string; value: string }>;
-  schema?: string;
-  schemaConfig?: Record<string, unknown>;
+  isSendNow?: boolean;
+  sendLaterTime?: string;
+  isRandomDelay?: boolean;
+  delaySec?: number;
+  delayStart?: number;
+  delayEnd?: number;
   errorTrace?: Record<string, unknown>;
 };
 
