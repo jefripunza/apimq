@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 type CreateQueueRequest struct {
@@ -451,16 +452,36 @@ func RetryMessage(c *fiber.Ctx) error {
 		return dto.BadRequest(c, "Only failed messages can be retried", nil)
 	}
 
-	// Reset status to pending and clear error
-	message.Status = QueueMessageStatusPending
-	message.ErrorMessage = nil
-	message.Response = nil
+	var newMessage QueueMessage
+	err := variable.Db.Transaction(func(tx *gorm.DB) error {
+		newMessage = QueueMessage{
+			QueueID: message.QueueID,
+			Method:  message.Method,
+			Query:   message.Query,
+			Body:    message.Body,
+			Headers: message.Headers,
+			Status:  QueueMessageStatusPending,
+		}
 
-	if err := variable.Db.Save(&message).Error; err != nil {
+		if err := tx.Create(&newMessage).Error; err != nil {
+			return err
+		}
+
+		referenceID := newMessage.ID.String()
+		message.IsAck = true
+		message.ReferenceID = &referenceID
+
+		if err := tx.Save(&message).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
 		return dto.InternalServerError(c, "Failed to retry message", nil)
 	}
 
-	return dto.OK(c, "Message queued for retry", message)
+	return dto.OK(c, "Message re-queued successfully", newMessage)
 }
 
 // AckMessage - PUT /api/queue/message/:id/ack

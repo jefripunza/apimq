@@ -63,5 +63,6 @@ export interface QueueMessage {
   response?: string | null;
   error_message?: string | null;
   is_ack: boolean;
+  reference_id?: string | null;
   created_at: string;
 }

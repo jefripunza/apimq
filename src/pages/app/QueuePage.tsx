@@ -284,16 +284,21 @@ export default function QueuePage() {
     }
   };
 
+  const prettyJsonOrRaw = (val: string | null | undefined) => {
+    if (!val) return "";
+    try {
+      return JSON.stringify(JSON.parse(val), null, 2);
+    } catch {
+      return val;
+    }
+  };
+
   const handleOpenEdit = (msg: QueueMessageApi) => {
     setEditingMessage(msg);
     setEditMethod(msg.method || "POST");
-    setEditQuery(
-      JSON.stringify(JSON.parse(msg.query as string) || {}, null, 2),
-    );
-    setEditBody(JSON.stringify(JSON.parse(msg.body as string) || {}, null, 2));
-    setEditHeaders(
-      JSON.stringify(JSON.parse(msg.headers as string) || {}, null, 2),
-    );
+    setEditQuery(prettyJsonOrRaw(msg.query));
+    setEditBody(prettyJsonOrRaw(msg.body));
+    setEditHeaders(prettyJsonOrRaw(msg.headers));
     setEditError("");
     setIsEditOpen(true);
   };
