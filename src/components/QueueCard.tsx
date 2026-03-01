@@ -1,14 +1,15 @@
 import { useNavigate } from "react-router";
 import { Switch } from "./ui/switch";
 import { Settings, Activity, ArrowUpRight, FileText } from "lucide-react";
-import { useQueueStore, type QueueItem } from "@/stores/queueStore";
+import { useQueueStore } from "@/stores/queueStore";
+import type { Queue } from "@/types/queue";
 
 export default function QueueCard({
   queue,
   onOpenErrors,
 }: {
-  queue: QueueItem;
-  onOpenErrors: (queue: QueueItem) => void;
+  queue: Queue;
+  onOpenErrors: (queue: Queue) => void;
 }) {
   const navigate = useNavigate();
   const toggleQueueEnabled = useQueueStore((s) => s.toggleEnabled);
@@ -38,6 +39,7 @@ export default function QueueCard({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center gap-2 pl-1">
+            {/* disini */}
             <Switch
               checked={queue.enabled}
               onCheckedChange={(checked) =>

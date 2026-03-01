@@ -1,11 +1,7 @@
-import { type QueueItem } from "@/stores/dashboardStore";
 import { Circle } from "lucide-react";
+import type { QueueStatus } from "@/types/queue";
 
-export default function StatusBadge({
-  status,
-}: {
-  status: QueueItem["status"];
-}) {
+export default function StatusBadge({ status }: { status: QueueStatus }) {
   const config = {
     running: {
       color: "text-neon-green bg-neon-green/10 border-neon-green/20",

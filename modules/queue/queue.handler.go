@@ -215,7 +215,6 @@ func PatchToggle(c *fiber.Ctx) error {
 
 // ---------------------------------------------------- //
 
-// AddToMessage - POST /api/queue/:key
 func AddToMessage(c *fiber.Ctx) error {
 	key := c.Params("key")
 	if key == "" {
