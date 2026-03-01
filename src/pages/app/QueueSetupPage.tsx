@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  type ChangeEvent,
-} from "react";
+import { useEffect, useState, useCallback, type ChangeEvent } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
@@ -15,12 +9,21 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import satellite from "@/lib/satellite";
 import { uid } from "@/utils/random";
-import type { HeaderEntry, SchemaType } from "@/types/queue";
+import type { HeaderEntry, KeyStatus, SchemaType } from "@/types/queue";
 import SectionTitle from "@/components/SectionTitle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useQueueStore } from "@/stores/queueStore";
 
 export default function QueueSetupPage() {
   const location = useLocation();
@@ -28,15 +31,24 @@ export default function QueueSetupPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id && id !== "new";
 
+  const {
+    items: queues,
+    fetchByKey,
+    update: updateQueue,
+    remove: removeQueue,
+  } = useQueueStore();
+
   // basic fields
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
   const [origin, setOrigin] = useState("");
 
   // key check state
-  type KeyStatus = "idle" | "checking" | "available" | "taken" | "error";
   const [keyStatus, setKeyStatus] = useState<KeyStatus>("idle");
-  const keyCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // delete
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // headers
   const [headers, setHeaders] = useState<HeaderEntry[]>([]);
@@ -59,6 +71,11 @@ export default function QueueSetupPage() {
   // submit
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (isEdit) return;
+    navigate("/app/queues", { replace: true });
+  }, [isEdit, navigate]);
 
   useEffect(() => {
     const prefill = (
@@ -123,27 +140,110 @@ export default function QueueSetupPage() {
       setErrorWebhook(prefill.errorWebhook);
   }, [location.state]);
 
-  // ---- key check on blur ----
-  const handleKeyBlur = useCallback(async () => {
-    const trimmed = key.trim();
-    if (!trimmed) {
-      setKeyStatus("idle");
+  useEffect(() => {
+    if (!isEdit || !id) return;
+
+    const existing = queues.find((q) => q.key === id);
+    if (existing) {
+      setName(existing.name ?? "");
+      setKey(existing.key ?? "");
+      setOrigin(existing.origin ?? "");
+      setBatchCount(String(existing.batchCount ?? 1));
+      setHeaders(
+        (existing.headers ?? []).map((h) => ({
+          id: uid(),
+          key: h.key ?? "",
+          value: h.value ?? "",
+        })),
+      );
+
+      const sc = existing.schemaConfig ?? {};
+      const et = existing.errorTrace ?? {};
+      const schemaValue = (existing.schema ?? "") as SchemaType;
+      if (
+        schemaValue === "delay" ||
+        schemaValue === "timing" ||
+        schemaValue === ""
+      ) {
+        setSchema(schemaValue);
+      }
+
+      if (schemaValue === "delay") {
+        const random = Boolean((sc as { random?: unknown }).random);
+        setDelayRandom(random);
+        if (random) {
+          setDelaySecMin(String((sc as { min?: unknown }).min ?? ""));
+          setDelaySecMax(String((sc as { max?: unknown }).max ?? ""));
+        } else {
+          setDelaySec(String((sc as { sec?: unknown }).sec ?? ""));
+        }
+      }
+
+      if (schemaValue === "timing") {
+        setTimingDatetime(
+          String((sc as { datetime?: unknown }).datetime ?? ""),
+        );
+      }
+
+      const webhook = String((et as { webhook?: unknown }).webhook ?? "");
+      setErrorTrace(Boolean(webhook));
+      setErrorWebhook(webhook);
       return;
     }
-    if (keyCheckTimer.current) clearTimeout(keyCheckTimer.current);
-    setKeyStatus("checking");
-    keyCheckTimer.current = setTimeout(async () => {
-      try {
-        const res = await satellite.get<{ available: boolean }>(
-          `/api/queue/check-key?key=${encodeURIComponent(trimmed)}`,
-        );
-        setKeyStatus(res.data.available ? "available" : "taken");
-      } catch {
-        // treat error as available for now (server might not have this endpoint yet)
-        setKeyStatus("available");
+
+    // fallback: fetch from API
+    fetchByKey(id).then((q) => {
+      if (!q) return;
+      setName(q.name ?? "");
+      setKey(q.key ?? "");
+      setOrigin(q.origin ?? "");
+      setBatchCount(String(q.batchCount ?? 1));
+      setHeaders(
+        (q.headers ?? []).map((h) => ({
+          id: uid(),
+          key: h.key ?? "",
+          value: h.value ?? "",
+        })),
+      );
+
+      const sc = q.schemaConfig ?? {};
+      const et = q.errorTrace ?? {};
+      const schemaValue = (q.schema ?? "") as SchemaType;
+      if (
+        schemaValue === "delay" ||
+        schemaValue === "timing" ||
+        schemaValue === ""
+      ) {
+        setSchema(schemaValue);
       }
-    }, 300);
-  }, [key]);
+
+      if (schemaValue === "delay") {
+        const random = Boolean((sc as { random?: unknown }).random);
+        setDelayRandom(random);
+        if (random) {
+          setDelaySecMin(String((sc as { min?: unknown }).min ?? ""));
+          setDelaySecMax(String((sc as { max?: unknown }).max ?? ""));
+        } else {
+          setDelaySec(String((sc as { sec?: unknown }).sec ?? ""));
+        }
+      }
+
+      if (schemaValue === "timing") {
+        setTimingDatetime(
+          String((sc as { datetime?: unknown }).datetime ?? ""),
+        );
+      }
+
+      const webhook = String((et as { webhook?: unknown }).webhook ?? "");
+      setErrorTrace(Boolean(webhook));
+      setErrorWebhook(webhook);
+    });
+  }, [fetchByKey, id, isEdit, queues]);
+
+  // ---- key check on blur ----
+  const handleKeyBlur = useCallback(async () => {
+    setKeyStatus("idle");
+  }, []);
 
   // ---- headers ----
   const addHeader = () =>
@@ -160,36 +260,49 @@ export default function QueueSetupPage() {
   // ---- submit ----
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (keyStatus === "taken") return;
+    if (!isEdit || !id) return;
     setSubmitError("");
     setIsSubmitting(true);
     try {
-      const payload = {
+      const schemaConfig: Record<string, unknown> = {};
+      if (schema === "delay") {
+        if (delayRandom) {
+          schemaConfig.random = true;
+          schemaConfig.min = Number(delaySecMin || 0);
+          schemaConfig.max = Number(delaySecMax || 0);
+        } else {
+          schemaConfig.random = false;
+          schemaConfig.sec = Number(delaySec || 0);
+        }
+      }
+      if (schema === "timing") {
+        schemaConfig.datetime = timingDatetime;
+      }
+
+      const errorTracePayload: Record<string, unknown> = {};
+      if (errorTrace) {
+        errorTracePayload.webhook = errorWebhook.trim();
+      }
+
+      const basePayload = {
         name: name.trim(),
-        key: key.trim(),
         origin: origin.trim(),
         batchCount: Number(batchCount) || 1,
         headers: headers
           .filter((h) => h.key.trim())
           .map((h) => ({ key: h.key.trim(), value: h.value.trim() })),
-        schema: schema || null,
-        ...(schema === "delay" && {
-          delay: delayRandom
-            ? {
-                random: true,
-                min: Number(delaySecMin),
-                max: Number(delaySecMax),
-              }
-            : { random: false, seconds: Number(delaySec) },
-        }),
-        ...(schema === "timing" && { timing: timingDatetime }),
-        errorTrace: errorTrace ? { webhook: errorWebhook.trim() } : null,
+        schema,
+        schemaConfig,
+        errorTrace: errorTracePayload,
       };
-      if (isEdit) {
-        await satellite.put(`/api/queue/${id}`, payload);
-      } else {
-        await satellite.post("/api/queue", payload);
+
+      const ok = await updateQueue(id, basePayload);
+
+      if (!ok) {
+        setSubmitError("Failed to save queue. Please try again.");
+        return;
       }
+
       navigate("/app/queues");
     } catch (err: unknown) {
       const msg =
@@ -198,6 +311,23 @@ export default function QueueSetupPage() {
       setSubmitError(msg);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!isEdit || !id) return;
+    setIsDeleting(true);
+    setSubmitError("");
+    try {
+      const ok = await removeQueue(id);
+      if (!ok) {
+        setSubmitError("Failed to delete queue. Please try again.");
+        return;
+      }
+      setIsDeleteOpen(false);
+      navigate("/app/queues");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -282,6 +412,7 @@ export default function QueueSetupPage() {
                 }}
                 onBlur={handleKeyBlur}
                 placeholder="unique-queue-key"
+                disabled={isEdit}
                 className={
                   keyStatus === "taken"
                     ? "border-neon-red/60 focus:border-neon-red/80"
@@ -553,6 +684,52 @@ export default function QueueSetupPage() {
 
         {/* Actions */}
         <div className="flex items-center gap-3 justify-end pb-6">
+          {isEdit && (
+            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="mr-auto flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-neon-red border border-neon-red/30 hover:border-neon-red/50 hover:bg-neon-red/5 rounded-xl transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete queue?</DialogTitle>
+                  <DialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    the queue <span className="font-mono">{id}</span>.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteOpen(false)}
+                    className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={handleDelete}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-neon-red/80 hover:bg-neon-red disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete"
+                    )}
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
           <button
             type="button"
             onClick={() => navigate(-1)}
@@ -571,7 +748,7 @@ export default function QueueSetupPage() {
                 Saving...
               </>
             ) : (
-              <>{isEdit ? "Save Changes" : "Create Queue"}</>
+              <>Save Changes</>
             )}
           </button>
         </div>

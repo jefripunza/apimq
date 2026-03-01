@@ -69,6 +69,7 @@ interface QueueState {
   error: string | null;
 
   fetchAll: () => Promise<boolean>;
+  fetchByKey: (key: string) => Promise<QueueItem | null>;
   checkKeyAvailable: (key: string) => Promise<boolean>;
   create: (payload: CreateQueuePayload) => Promise<boolean>;
   update: (key: string, payload: UpdateQueuePayload) => Promise<boolean>;
@@ -95,6 +96,30 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
         "Failed to load queues";
       set({ error: msg, isLoading: false });
       return false;
+    }
+  },
+
+  fetchByKey: async (key: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await queueService.getByKey(key);
+      if (!res.data) {
+        set({ isLoading: false });
+        return null;
+      }
+      const item = mapQueueApiToItem(res.data);
+      set({
+        items: [item, ...get().items.filter((q) => q.key !== key)],
+        isLoading: false,
+      });
+      return item;
+    } catch (err: unknown) {
+      const e = err as AxiosError;
+      const msg =
+        (e.response?.data as { message?: string } | undefined)?.message ??
+        "Failed to load queue";
+      set({ error: msg, isLoading: false });
+      return null;
     }
   },
 
