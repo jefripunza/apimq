@@ -5,6 +5,7 @@ import (
 	"apimq/variable"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -444,6 +446,9 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		bodyReader = bytes.NewBufferString(msg.Body)
 	}
 
+	log.Println("HTTP_PROXY:", os.Getenv("HTTP_PROXY"))
+	log.Println("HTTPS_PROXY:", os.Getenv("HTTPS_PROXY"))
+
 	req, err := http.NewRequest(method, targetURL, bodyReader)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to build request: %v", err)
@@ -495,7 +500,19 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 	if timeoutSec <= 0 {
 		timeoutSec = 30
 	}
-	client := &http.Client{Timeout: time.Duration(timeoutSec) * time.Second}
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		Proxy: func(*http.Request) (*url.URL, error) {
+			return nil, nil
+		},
+	}
+	client := &http.Client{
+		Timeout:   time.Duration(timeoutSec) * time.Second,
+		Transport: transport,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		errMsg := fmt.Sprintf("request failed: %v", err)
