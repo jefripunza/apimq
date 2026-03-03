@@ -26,6 +26,16 @@ import (
 //go:embed dist/*
 var embedDist embed.FS
 
+func replaceHTMLHeadTitle(data []byte) []byte {
+	if len(data) == 0 {
+		return data
+	}
+	s := string(data)
+	s = strings.ReplaceAll(s, "html-head-title", "ApiMQ | Message Broker for HTTP requests")
+	s = strings.ReplaceAll(s, "html-head-description", "ApiMQ is a self-hosted HTTP message queue for reliable request delivery.")
+	return []byte(s)
+}
+
 func main() {
 	// Initialize database
 	database.OpenDB()
@@ -74,7 +84,7 @@ func main() {
 		}
 		// try to serve the exact file
 		filePath := strings.TrimPrefix(path, "/")
-		if filePath == "" {
+		if filePath == "" || filePath == "/" {
 			filePath = "index.html"
 		}
 		data, err := fs.ReadFile(distFS, filePath)
@@ -85,12 +95,15 @@ func main() {
 				return fiber.ErrNotFound
 			}
 			c.Set("Content-Type", "text/html; charset=utf-8")
-			return c.Send(data)
+			return c.Send(replaceHTMLHeadTitle(data))
 		}
 		// set content type based on extension
 		ext := filepath.Ext(filePath)
 		if ct := mime.TypeByExtension(ext); ct != "" {
 			c.Set("Content-Type", ct)
+		}
+		if ext == ".html" {
+			data = replaceHTMLHeadTitle(data)
 		}
 		return c.Send(data)
 	})
