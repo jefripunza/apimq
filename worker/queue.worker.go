@@ -509,6 +509,41 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		Timeout:   time.Duration(timeoutSec) * time.Second,
 		Transport: transport,
 	}
+
+	// Check if we should wait for response or fire-and-forget
+	if !q.IsWaitResponse {
+		// Fire-and-forget: send request in goroutine, don't wait for response
+		go func() {
+			resp, err := client.Do(req)
+			if err != nil {
+				log.Printf("⚠️  [fire-and-forget] Message id=%s request error: %v", msg.ID.String(), err)
+				return
+			}
+			defer resp.Body.Close()
+			// Drain body to allow connection reuse
+			io.Copy(io.Discard, resp.Body)
+			if debug {
+				log.Printf("🚀 [fire-and-forget] Message id=%s sent, HTTP %d", msg.ID.String(), resp.StatusCode)
+			}
+		}()
+
+		// Mark as completed immediately (fire-and-forget mode)
+		if debug {
+			log.Printf("🚀 Message id=%s sent (fire-and-forget, not waiting for response)", msg.ID.String())
+		}
+		if err := variable.Db.Model(msg).Updates(map[string]interface{}{
+			"status":   queue.QueueMessageStatusCompleted,
+			"is_ack":   true,
+			"response": "[fire-and-forget: response not captured]",
+		}).Error; err != nil {
+			log.Printf("⚠️  Failed updating status=completed message id=%s err=%v", msg.ID.String(), err)
+		}
+		duration := time.Since(startTime).Milliseconds()
+		createLogAndEmit(q, msg, queue.QueueLogStatusCompleted, duration, nil)
+		return
+	}
+
+	// Wait for response (default behavior)
 	resp, err := client.Do(req)
 	if err != nil {
 		errMsg := fmt.Sprintf("request failed: %v", err)
