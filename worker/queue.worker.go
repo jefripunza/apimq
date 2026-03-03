@@ -516,30 +516,70 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		go func() {
 			resp, err := client.Do(req)
 			if err != nil {
-				log.Printf("⚠️  [fire-and-forget] Message id=%s request error: %v", msg.ID.String(), err)
+				errMsg := fmt.Sprintf("request failed: %v", err)
+				log.Printf("❌ [fire-and-forget] Message id=%s request failed: %s", msg.ID.String(), errMsg)
+				variable.Db.Model(msg).Updates(map[string]interface{}{
+					"status":        queue.QueueMessageStatusFailed,
+					"error_message": errMsg,
+				})
+				duration := time.Since(startTime).Milliseconds()
+				createLogAndEmit(q, msg, queue.QueueLogStatusFailed, duration, &errMsg)
 				return
 			}
 			defer resp.Body.Close()
-			// Drain body to allow connection reuse
-			io.Copy(io.Discard, resp.Body)
-			if debug {
-				log.Printf("🚀 [fire-and-forget] Message id=%s sent, HTTP %d", msg.ID.String(), resp.StatusCode)
+
+			// read response body for error context
+			respBody, _ := io.ReadAll(resp.Body)
+			respStr := string(respBody)
+			if len(respStr) > 20000 {
+				respStr = respStr[:20000]
+			}
+
+			if resp.StatusCode >= 100 && resp.StatusCode < 400 {
+				// success
+				if debug {
+					log.Printf("✅ [fire-and-forget] Message id=%s success HTTP %d", msg.ID.String(), resp.StatusCode)
+				}
+				if err := variable.Db.Model(msg).Updates(map[string]interface{}{
+					"status":   queue.QueueMessageStatusCompleted,
+					"is_ack":   true,
+					"response": respStr,
+				}).Error; err != nil {
+					log.Printf("⚠️  [fire-and-forget] Failed updating status=completed message id=%s err=%v", msg.ID.String(), err)
+				}
+				duration := time.Since(startTime).Milliseconds()
+				createLogAndEmit(q, msg, queue.QueueLogStatusCompleted, duration, nil)
+			} else {
+				// HTTP error
+				// Prefer JSON {message: "..."} if response body is JSON
+				errDetail := respStr
+				var parsed map[string]interface{}
+				if json.Unmarshal(respBody, &parsed) == nil {
+					if v, ok := parsed["message"]; ok {
+						errDetail = fmt.Sprintf("%v", v)
+					} else if v, ok := parsed["error"]; ok {
+						errDetail = fmt.Sprintf("%v", v)
+					}
+				}
+
+				errMsg := fmt.Sprintf("HTTP %d: %s", resp.StatusCode, errDetail)
+				if len(errMsg) > 2000 {
+					errMsg = errMsg[:2000]
+				}
+				log.Printf("❌ [fire-and-forget] Message id=%s failed: %s", msg.ID.String(), errMsg)
+				variable.Db.Model(msg).Updates(map[string]interface{}{
+					"status":        queue.QueueMessageStatusFailed,
+					"error_message": errMsg,
+					"response":      respStr,
+				})
+				duration := time.Since(startTime).Milliseconds()
+				createLogAndEmit(q, msg, queue.QueueLogStatusFailed, duration, &errMsg)
 			}
 		}()
 
-		// Mark as completed immediately (fire-and-forget mode)
 		if debug {
-			log.Printf("🚀 Message id=%s sent (fire-and-forget, not waiting for response)", msg.ID.String())
+			log.Printf("🚀 Message id=%s sent (fire-and-forget, finalizing async)", msg.ID.String())
 		}
-		if err := variable.Db.Model(msg).Updates(map[string]interface{}{
-			"status":   queue.QueueMessageStatusCompleted,
-			"is_ack":   true,
-			"response": "[fire-and-forget: response not captured]",
-		}).Error; err != nil {
-			log.Printf("⚠️  Failed updating status=completed message id=%s err=%v", msg.ID.String(), err)
-		}
-		duration := time.Since(startTime).Milliseconds()
-		createLogAndEmit(q, msg, queue.QueueLogStatusCompleted, duration, nil)
 		return
 	}
 

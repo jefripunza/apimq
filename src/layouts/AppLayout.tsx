@@ -5,7 +5,6 @@ import { useSidebarStore } from "@/stores/sidebarStore";
 import { useThemeStore } from "@/stores/themeStore";
 import {
   LayoutDashboard,
-  Zap,
   LogOut,
   Menu,
   X,
@@ -148,10 +147,10 @@ export default function AppLayout() {
             {(!effectiveCollapsed || isMobileOpen) && (
               <div className="flex items-center gap-3 min-w-0">
                 <div className="relative shrink-0">
-                  <div className="w-9 h-9 rounded-lg bg-accent-500/20 border border-accent-500/30 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-accent-400" />
+                  <div className="w-9 h-9 rounded-lg bg-accent-500/20 border border-accent-500/30 flex items-center justify-center overflow-hidden">
+                    <img src="/apimq.svg" alt="ApiMQ" className="w-5 h-5" />
                   </div>
-                  <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-neon-green rounded-full animate-pulse-glow" />
+                  {/* <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-neon-green rounded-full animate-pulse-glow" /> */}
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-base font-bold text-foreground tracking-tight truncate">
@@ -263,10 +262,16 @@ export default function AppLayout() {
               )}
             </button>
 
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-dark-700/50 rounded-lg border border-dark-600/30">
-              <div className="w-2 h-2 rounded-full bg-neon-green animate-pulse-glow" />
-              <span className="text-xs font-mono text-dark-300">connected</span>
-            </div>
+            <button
+              type="button"
+              onClick={() =>
+                window.open("/doc", "_blank", "noopener,noreferrer")
+              }
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-dark-700/50 rounded-lg border border-dark-600/30 text-xs font-mono text-dark-300 hover:text-foreground hover:bg-dark-700/70 transition-all"
+              title="Open Docs"
+            >
+              Docs
+            </button>
           </div>
         </header>
 
