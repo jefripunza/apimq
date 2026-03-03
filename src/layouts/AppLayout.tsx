@@ -17,6 +17,7 @@ import {
   Key,
 } from "lucide-react";
 import Loading from "@/components/Loading";
+import version from "@/version";
 
 const navItems = [
   {
@@ -157,7 +158,7 @@ export default function AppLayout() {
                     ApiMQ
                   </h1>
                   <p className="text-[10px] text-dark-400 font-mono truncate">
-                    v0.1.0
+                    {version}
                   </p>
                 </div>
               </div>

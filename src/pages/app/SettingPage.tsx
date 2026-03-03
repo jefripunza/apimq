@@ -180,11 +180,19 @@ export default function SettingPage() {
               rel="noopener noreferrer"
               className="text-accent-400 hover:text-accent-300 transition-colors underline underline-offset-2"
             >
-              Jefri Punza
+              jefripunza
             </a>
           </p>
           <p className="text-xs text-dark-400 font-mono">
-            Open source &middot; Built with Go + React
+            Open source &middot;{" "}
+            <a
+              href="https://github.com/jefripunza/apimq"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-400 hover:text-accent-300 transition-colors underline underline-offset-2"
+            >
+              Built with Go + React + TailwindCSS
+            </a>
           </p>
         </div>
       </div>
