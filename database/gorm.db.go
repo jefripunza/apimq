@@ -107,10 +107,10 @@ func OpenDB() (*gorm.DB, error) {
 
 	case "sqlite":
 		if dbName == "" {
-			dbName = "./system.sqlite"
+			dbName = "./database/system.sqlite"
 		} else {
 			if !strings.Contains(dbName, ".sqlite") && !strings.Contains(dbName, "./") {
-				dbName = fmt.Sprintf("./%s.sqlite", dbName)
+				dbName = fmt.Sprintf("./database/%s.sqlite", dbName)
 			}
 		}
 		dialector = sqlite.Open(dbName)

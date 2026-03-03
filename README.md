@@ -18,7 +18,7 @@ Run:
 
 ```bash
 docker run --rm -p 3000:3000 --name apimq \
-  -v system:/app/system.sqlite \
+  -v system:/app/database/system.sqlite \
   jefriherditriyanto/apimq:latest
 ```
 
@@ -26,7 +26,7 @@ For production, it's recommended to run with environment variables (example):
 
 ```bash
 docker run --rm -p 3000:3000 --name apimq \
-  -v system:/app/system.sqlite \
+  -v system:/app/database/system.sqlite \
   -e PORT=3000 \
   -e JWT_SECRET="change-me" \
   -e DATABASE_PROVIDER="mysql" \
