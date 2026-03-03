@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useQueueStore } from "@/stores/queueStore";
 import { getSocket } from "@/lib/socket";
 import { Plus } from "lucide-react";
-import QueueFormFields from "@/components/QueueFormFields";
+import QueueForm from "@/components/QueueForm";
 import {
   Dialog,
   DialogContent,
@@ -12,11 +12,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { uid } from "@/utils/random";
 import { formatDate } from "@/utils/datetime";
 import QueueCard from "@/components/QueueCard";
 import JsonEditor from "@/components/JsonEditor";
-import type { HeaderEntry, KeyStatus, Queue } from "@/types/queue";
+import type { Queue } from "@/types/queue";
 import type { QueueMessageApi } from "@/services/queue.service";
 import { Loader2, RefreshCw, Edit } from "lucide-react";
 
@@ -24,8 +23,6 @@ export default function QueuePage() {
   const {
     items: queues,
     fetchAll: fetchAllQueues,
-    checkKeyAvailable,
-    create: createQueue,
     getFailedMessages,
     retryMessage,
     ackMessage,
@@ -102,134 +99,6 @@ export default function QueuePage() {
   const [isErrorsOpen, setIsErrorsOpen] = useState(false);
   const [errorsQueue, setErrorsQueue] = useState<Queue | null>(null);
   const [isNewOpen, setIsNewOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newKey, setNewKey] = useState("");
-  const [newOrigin, setNewOrigin] = useState("");
-  const [newColor, setNewColor] = useState("#6366f1");
-  const [newBatchCount, setNewBatchCount] = useState("1");
-  const [newTimeout, setNewTimeout] = useState("30");
-  const [newHeaders, setNewHeaders] = useState<HeaderEntry[]>([]);
-  // Timing fields
-  const [newIsSendNow, setNewIsSendNow] = useState(true);
-  const [newSendLaterTime, setNewSendLaterTime] = useState("");
-  const [newIsUseDelay, setNewIsUseDelay] = useState(true);
-  const [newIsRandomDelay, setNewIsRandomDelay] = useState(false);
-  const [newDelaySec, setNewDelaySec] = useState("");
-  const [newDelayStart, setNewDelayStart] = useState("");
-  const [newDelayEnd, setNewDelayEnd] = useState("");
-  const [newIsWaitResponse, setNewIsWaitResponse] = useState(true);
-  // Error trace
-  const [newErrorTrace, setNewErrorTrace] = useState(false);
-  const [newErrorWebhook, setNewErrorWebhook] = useState("");
-
-  const [newKeyStatus, setNewKeyStatus] = useState<KeyStatus>("idle");
-  const keyCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const resetNewQueueForm = () => {
-    setNewName("");
-    setNewKey("");
-    setNewOrigin("");
-    setNewColor("#6366f1");
-    setNewBatchCount("1");
-    setNewTimeout("30");
-    setNewHeaders([]);
-    setNewIsSendNow(true);
-    setNewSendLaterTime("");
-    setNewIsUseDelay(true);
-    setNewIsRandomDelay(false);
-    setNewDelaySec("");
-    setNewDelayStart("");
-    setNewDelayEnd("");
-    setNewIsWaitResponse(true);
-    setNewErrorTrace(false);
-    setNewErrorWebhook("");
-    setNewKeyStatus("idle");
-  };
-
-  const handleNewKeyBlur = async () => {
-    const trimmed = newKey.trim();
-    if (!trimmed) {
-      setNewKeyStatus("idle");
-      return;
-    }
-
-    if (keyCheckTimer.current) clearTimeout(keyCheckTimer.current);
-    setNewKeyStatus("checking");
-    keyCheckTimer.current = setTimeout(async () => {
-      try {
-        const available = await checkKeyAvailable(trimmed);
-        setNewKeyStatus(available ? "available" : "taken");
-      } catch {
-        setNewKeyStatus("available");
-      }
-    }, 300);
-  };
-
-  const addNewHeader = () =>
-    setNewHeaders((prev) => [...prev, { id: uid(), key: "", value: "" }]);
-  const updateNewHeader = (id: string, field: "key" | "value", value: string) =>
-    setNewHeaders((prev) =>
-      prev.map((h) => (h.id === id ? { ...h, [field]: value } : h)),
-    );
-  const removeNewHeader = (id: string) =>
-    setNewHeaders((prev) => prev.filter((h) => h.id !== id));
-
-  const handleCreateNew = async (e: FormEvent) => {
-    e.preventDefault();
-    if (newKeyStatus === "taken") return;
-
-    const computeNextSendLaterISO = (timeStr: string) => {
-      // Expect HH:MM
-      if (!timeStr || !timeStr.includes(":")) return undefined;
-      const [hhStr, mmStr] = timeStr.split(":");
-      const hh = Number(hhStr);
-      const mm = Number(mmStr);
-      if (Number.isNaN(hh) || Number.isNaN(mm)) return undefined;
-
-      const now = new Date();
-      const next = new Date(now);
-      next.setSeconds(0, 0);
-      next.setHours(hh, mm, 0, 0);
-      if (next.getTime() <= now.getTime()) {
-        next.setDate(next.getDate() + 1);
-      }
-      return next.toISOString();
-    };
-
-    const errorTrace: Record<string, unknown> = {};
-    if (newErrorTrace) {
-      errorTrace.webhook = newErrorWebhook;
-    }
-
-    const ok = await createQueue({
-      name: newName,
-      key: newKey,
-      origin: newOrigin,
-      color: newColor,
-      batchCount: Number(newBatchCount || 1),
-      timeout: Number(newTimeout || 30),
-      headers: newHeaders
-        .filter((h) => h.key.trim())
-        .map((h) => ({ key: h.key.trim(), value: h.value.trim() })),
-      isSendNow: newIsSendNow,
-      sendLaterTime:
-        !newIsSendNow && newSendLaterTime
-          ? computeNextSendLaterISO(newSendLaterTime)
-          : undefined,
-      isUseDelay: newIsSendNow ? newIsUseDelay : false,
-      isRandomDelay: newIsRandomDelay,
-      delaySec: !newIsRandomDelay ? Number(newDelaySec || 0) : 0,
-      delayStart: newIsRandomDelay ? Number(newDelayStart || 0) : 0,
-      delayEnd: newIsRandomDelay ? Number(newDelayEnd || 0) : 0,
-      isWaitResponse: newIsWaitResponse,
-      errorTrace,
-    });
-
-    if (!ok) return;
-
-    setIsNewOpen(false);
-    resetNewQueueForm();
-  };
 
   const fetchFailedMessages = async (id: string) => {
     setIsLoadingErrors(true);
@@ -360,75 +229,18 @@ export default function QueuePage() {
         <DialogHeader>
           <DialogTitle>Create queue</DialogTitle>
           <DialogDescription>
-            Quick-add basic info. You can complete advanced settings on the next
-            step.
+            Configure your new message queue settings.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleCreateNew} className="space-y-4 mt-4">
-          <QueueFormFields
+        <div className="mt-4">
+          <QueueForm
             variant="dialog"
-            name={newName}
-            keyValue={newKey}
-            origin={newOrigin}
-            color={newColor}
-            batchCount={newBatchCount}
-            timeout={newTimeout}
-            isSendNow={newIsSendNow}
-            sendLaterTime={newSendLaterTime}
-            isUseDelay={newIsUseDelay}
-            isRandomDelay={newIsRandomDelay}
-            delaySec={newDelaySec}
-            delayStart={newDelayStart}
-            delayEnd={newDelayEnd}
-            isWaitResponse={newIsWaitResponse}
-            errorTrace={newErrorTrace}
-            errorWebhook={newErrorWebhook}
-            headers={newHeaders}
-            keyStatus={newKeyStatus}
             autoFocusName
-            onNameChange={setNewName}
-            onKeyChange={(value) => {
-              setNewKey(value);
-              setNewKeyStatus("idle");
-            }}
-            onOriginChange={setNewOrigin}
-            onColorChange={setNewColor}
-            onBatchCountChange={setNewBatchCount}
-            onTimeoutChange={setNewTimeout}
-            onIsSendNowChange={setNewIsSendNow}
-            onSendLaterTimeChange={setNewSendLaterTime}
-            onIsUseDelayChange={setNewIsUseDelay}
-            onIsRandomDelayChange={setNewIsRandomDelay}
-            onDelaySecChange={setNewDelaySec}
-            onDelayStartChange={setNewDelayStart}
-            onDelayEndChange={setNewDelayEnd}
-            onIsWaitResponseChange={setNewIsWaitResponse}
-            onErrorTraceChange={setNewErrorTrace}
-            onErrorWebhookChange={setNewErrorWebhook}
-            onAddHeader={addNewHeader}
-            onUpdateHeader={updateNewHeader}
-            onRemoveHeader={removeNewHeader}
-            onKeyBlur={handleNewKeyBlur}
+            onSuccess={() => setIsNewOpen(false)}
+            onCancel={() => setIsNewOpen(false)}
           />
-
-          <DialogFooter className="pt-2">
-            <button
-              type="button"
-              onClick={() => setIsNewOpen(false)}
-              className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={newKeyStatus === "taken" || newKeyStatus === "checking"}
-              className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
-            >
-              Continue
-            </button>
-          </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
