@@ -27,6 +27,11 @@ export default function DashboardPage() {
     Record<string, Array<[number, number]>>
   >({});
 
+  const queuesRef = useRef(queues);
+  useEffect(() => {
+    queuesRef.current = queues;
+  }, [queues]);
+
   // Subscribe to live_data socket room for real-time stats updates
   const socketRef = useRef(getSocket());
   useEffect(() => {
@@ -42,7 +47,7 @@ export default function DashboardPage() {
       setSeriesData((prev) => {
         const next: Record<string, Array<[number, number]>> = { ...prev };
 
-        for (const q of queues) {
+        for (const q of queuesRef.current) {
           const key = q.key;
           const existing = next[key] ?? [];
           const y = counts[key] ?? 0;
@@ -59,7 +64,7 @@ export default function DashboardPage() {
           );
         }
 
-        const activeKeys = new Set(queues.map((q) => q.key));
+        const activeKeys = new Set(queuesRef.current.map((q) => q.key));
         for (const k of Object.keys(next)) {
           if (!activeKeys.has(k)) delete next[k];
         }
@@ -73,7 +78,7 @@ export default function DashboardPage() {
       socket.emit("leave_live_data");
       socket.off("live_data", onLiveData);
     };
-  }, [queues, setStats, stats]);
+  }, [setStats]);
 
   const chartData = useMemo(
     () =>
@@ -139,7 +144,7 @@ export default function DashboardPage() {
       <div className="bg-dark-800/60 border border-dark-600/40 rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-dark-600/40">
           <h3 className="text-sm font-semibold text-foreground">
-            Queue Throughput
+            Queue Incoming
           </h3>
           <p className="text-xs text-dark-400 mt-0.5 font-mono">
             Live chart (updates every second) - 1 line per queue
