@@ -47,18 +47,21 @@ export default function QueueCard({
   const [sendSuccess, setSendSuccess] = useState(false);
   const [sendCount, setSendCount] = useState("1");
   const [selectedApiKey, setSelectedApiKey] = useState<string>("");
+  const [buttonDisabled, setButtonDisabled] = useState(false);
 
   const handleSendTest = async () => {
     setSendError("");
     setSendSuccess(false);
     setIsSending(true);
+    setButtonDisabled(true);
     try {
       const n = Math.max(1, Number(sendCount) || 1);
-      jsonBody["queue_id"] = queue.id;
-      jsonBody["key"] = queue.key;
 
       for (let i = 0; i < n; i += 1) {
-        await sendTestMessage(jsonBody, selectedApiKey || undefined);
+        await sendTestMessage(
+          { ...jsonBody, queue_id: queue.id, key: queue.key },
+          selectedApiKey || undefined,
+        );
       }
 
       await fetchAll();
@@ -68,7 +71,8 @@ export default function QueueCard({
         setIsCodeOpen(false);
         setSendSuccess(false);
         setJsonBody({});
-      }, 1500);
+        setButtonDisabled(false);
+      }, 500);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -198,7 +202,7 @@ export default function QueueCard({
                   <button
                     type="button"
                     onClick={handleSendTest}
-                    disabled={isSending}
+                    disabled={isSending || buttonDisabled}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
                   >
                     {isSending ? (

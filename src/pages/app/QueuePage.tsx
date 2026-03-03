@@ -344,6 +344,595 @@ export default function QueuePage() {
     }
   };
 
+  const DialogNewQueue = (
+    <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
+      <DialogTrigger asChild>
+        <button className="flex items-center gap-2 px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25 shrink-0">
+          <Plus className="w-4 h-4" />
+          <span>New Queue</span>
+        </button>
+      </DialogTrigger>
+      <DialogContent
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        className="max-h-[85vh] overflow-y-auto"
+      >
+        <DialogHeader>
+          <DialogTitle>Create queue</DialogTitle>
+          <DialogDescription>
+            Quick-add basic info. You can complete advanced settings on the next
+            step.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleCreateNew} className="space-y-4 mt-4">
+          <div>
+            <label className="block text-sm font-medium text-dark-200 mb-1.5">
+              Name<span className="text-neon-red ml-1">*</span>
+            </label>
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="e.g. order.processing"
+              className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+              required
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-dark-200 mb-1.5">
+              Key<span className="text-neon-red ml-1">*</span>
+            </label>
+            <div className="relative">
+              <input
+                value={newKey}
+                onChange={(e) => {
+                  setNewKey(e.target.value);
+                  setNewKeyStatus("idle");
+                }}
+                onBlur={handleNewKeyBlur}
+                placeholder="unique-queue-key"
+                className={`w-full px-4 py-2.5 bg-dark-900/60 border rounded-xl text-foreground placeholder-dark-400 focus:outline-none transition-all font-mono text-sm pr-10 ${
+                  newKeyStatus === "taken"
+                    ? "border-neon-red/60 focus:border-neon-red/80 focus:ring-1 focus:ring-neon-red/20"
+                    : newKeyStatus === "available"
+                      ? "border-neon-green/60 focus:border-neon-green/80 focus:ring-1 focus:ring-neon-green/20"
+                      : "border-dark-500/50 focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30"
+                }`}
+                required
+              />
+              {newKeyStatus === "checking" && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-dark-500 border-t-transparent rounded-full animate-spin" />
+              )}
+              {newKeyStatus === "available" && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-neon-green" />
+              )}
+              {newKeyStatus === "taken" && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-neon-red" />
+              )}
+            </div>
+            {newKeyStatus === "taken" && (
+              <p className="text-xs text-neon-red font-mono mt-1">
+                key already taken
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-dark-200 mb-1.5">
+              Origin<span className="text-neon-red ml-1">*</span>
+            </label>
+            <input
+              value={newOrigin}
+              onChange={(e) => setNewOrigin(e.target.value)}
+              placeholder="https://your-service.com"
+              className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                Batch Count<span className="text-neon-red ml-1">*</span>
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={newBatchCount}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setNewBatchCount(e.target.value)
+                }
+                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                Timeout (sec)<span className="text-neon-red ml-1">*</span>
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={newTimeout}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setNewTimeout(e.target.value)
+                }
+                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Timing Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-dark-200 font-medium">Send Now</p>
+                <p className="text-xs text-dark-400 font-mono">
+                  Send messages immediately when added
+                </p>
+              </div>
+              <Switch
+                checked={newIsSendNow}
+                onCheckedChange={setNewIsSendNow}
+              />
+            </div>
+
+            {!newIsSendNow && (
+              <div className="pl-4 border-l-2 border-accent-500/30">
+                <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                  Scheduled Time
+                  <span className="text-neon-red ml-1">*</span>
+                </label>
+                <input
+                  type="time"
+                  value={newSendLaterTime}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setNewSendLaterTime(e.target.value)
+                  }
+                  className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                  required
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Delay Section */}
+          <div className="space-y-3">
+            {newIsSendNow && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-dark-200 font-medium">Use Delay</p>
+                  <p className="text-xs text-dark-400 font-mono">
+                    Enable delay settings for send-now queues
+                  </p>
+                </div>
+                <Switch
+                  checked={newIsUseDelay}
+                  onCheckedChange={setNewIsUseDelay}
+                />
+              </div>
+            )}
+
+            {newIsSendNow && newIsUseDelay && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-dark-200 font-medium">
+                      Random Delay
+                    </p>
+                    <p className="text-xs text-dark-400 font-mono">
+                      Add random delay between messages
+                    </p>
+                  </div>
+                  <Switch
+                    checked={newIsRandomDelay}
+                    onCheckedChange={setNewIsRandomDelay}
+                  />
+                </div>
+
+                {newIsRandomDelay ? (
+                  <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
+                    <div>
+                      <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                        Min seconds
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={newDelayStart}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setNewDelayStart(e.target.value)
+                        }
+                        className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                        Max seconds
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={newDelayEnd}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setNewDelayEnd(e.target.value)
+                        }
+                        className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pl-4 border-l-2 border-accent-500/30">
+                    <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                      Delay (seconds)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={newDelaySec}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setNewDelaySec(e.target.value)
+                      }
+                      placeholder="0"
+                      className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-dark-200 font-medium">Headers</p>
+                <p className="text-xs text-dark-400 font-mono">
+                  Optional HTTP headers
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={addNewHeader}
+                className="px-3 py-1.5 text-xs font-mono text-dark-300 hover:text-foreground border border-dashed border-dark-500/60 hover:border-dark-400/60 rounded-lg transition-all"
+              >
+                + Add
+              </button>
+            </div>
+
+            {newHeaders.length > 0 && (
+              <div className="space-y-2">
+                {newHeaders.map((h) => (
+                  <div key={h.id} className="flex gap-2 items-center">
+                    <input
+                      value={h.key}
+                      onChange={(e) =>
+                        updateNewHeader(h.id, "key", e.target.value)
+                      }
+                      placeholder="Header-Key"
+                      className="flex-1 px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                    />
+                    <input
+                      value={h.value}
+                      onChange={(e) =>
+                        updateNewHeader(h.id, "value", e.target.value)
+                      }
+                      placeholder="value"
+                      className="flex-1 px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeNewHeader(h.id)}
+                      className="p-2 rounded-lg text-dark-400 hover:text-neon-red hover:bg-neon-red/5 transition-all shrink-0"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-dark-200 font-medium">Error trace</p>
+                <p className="text-xs text-dark-400 font-mono">
+                  Notify webhook on delivery error
+                </p>
+              </div>
+              <Switch
+                checked={newErrorTrace}
+                onCheckedChange={setNewErrorTrace}
+              />
+            </div>
+            {newErrorTrace && (
+              <div>
+                <label className="block text-sm font-medium text-dark-200 mb-1.5">
+                  Error webhook URL
+                  <span className="text-neon-red ml-1">*</span>
+                </label>
+                <input
+                  type="url"
+                  value={newErrorWebhook}
+                  onChange={(e) => setNewErrorWebhook(e.target.value)}
+                  placeholder="https://your-service.com/error"
+                  className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+                  required
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2">
+            <button
+              type="button"
+              onClick={() => setIsNewOpen(false)}
+              className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={newKeyStatus === "taken" || newKeyStatus === "checking"}
+              className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
+            >
+              Continue
+            </button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const DialogFailedMessages = (
+    <Dialog
+      open={isErrorsOpen}
+      onOpenChange={(open) => {
+        setIsErrorsOpen(open);
+        if (!open) setFailedMessages([]);
+      }}
+    >
+      <DialogContent
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        className="max-h-[85vh] overflow-y-auto max-w-2xl"
+      >
+        <DialogHeader>
+          <DialogTitle>
+            Failed Messages{errorsQueue ? ` — ${errorsQueue.name}` : ""}
+          </DialogTitle>
+          <DialogDescription>
+            Messages that failed to deliver. You can retry or edit them.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div
+          className={`mt-4 space-y-3 ${
+            failedMessages.length > 5 ? "max-h-105 overflow-y-auto pr-2" : ""
+          }`}
+        >
+          {isLoadingErrors ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-accent-500" />
+            </div>
+          ) : failedMessages.length === 0 ? (
+            <div className="text-sm text-dark-300 font-mono bg-dark-900/40 border border-dark-600/30 rounded-xl p-4">
+              No failed messages.
+            </div>
+          ) : (
+            failedMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className="bg-dark-900/40 border border-dark-600/30 rounded-xl p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-mono px-2 py-0.5 bg-accent-500/20 text-accent-400 rounded">
+                        {msg.method}
+                      </span>
+                      <span className="text-[11px] font-mono text-neon-red border border-neon-red/20 bg-neon-red/10 rounded-md px-2 py-0.5">
+                        failed
+                      </span>
+                    </div>
+                    <p className="text-xs text-dark-400 font-mono">
+                      {formatDate(msg.created_at)}
+                    </p>
+                    {msg.error_message && (
+                      <p className="text-xs text-neon-red font-mono mt-2 break-all">
+                        {msg.error_message}
+                      </p>
+                    )}
+                    <details className="mt-2">
+                      <summary className="text-xs text-dark-400 cursor-pointer hover:text-dark-200">
+                        View details
+                      </summary>
+                      <div className="space-y-2 mt-2">
+                        {msg.query && (
+                          <div>
+                            <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
+                              Query
+                            </p>
+                            <pre className="text-xs text-dark-300 font-mono p-2 bg-dark-900/60 rounded overflow-x-auto max-h-24">
+                              {msg.query}
+                            </pre>
+                          </div>
+                        )}
+                        {msg.headers && (
+                          <div>
+                            <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
+                              Headers
+                            </p>
+                            <pre className="text-xs text-dark-300 font-mono p-2 bg-dark-900/60 rounded overflow-x-auto max-h-24">
+                              {msg.headers}
+                            </pre>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
+                            Body
+                          </p>
+                          <pre className="text-xs text-dark-300 font-mono p-2 bg-dark-900/60 rounded overflow-x-auto max-h-32">
+                            {msg.body}
+                          </pre>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(msg)}
+                      className="px-3 py-1.5 text-xs font-semibold text-dark-200 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-lg transition-all flex items-center gap-1"
+                    >
+                      <Edit className="w-3 h-3" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAckMessage(msg.id)}
+                      className="px-3 py-1.5 text-xs font-semibold text-dark-200 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-lg transition-all"
+                    >
+                      Ack
+                    </button>
+                    <button
+                      type="button"
+                      disabled={retryingIds.has(msg.id)}
+                      onClick={() => handleRetryMessage(msg.id)}
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 rounded-lg transition-all flex items-center gap-1"
+                    >
+                      {retryingIds.has(msg.id) ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3 h-3" />
+                      )}
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <DialogFooter className="pt-4">
+          <button
+            type="button"
+            onClick={() => setIsErrorsOpen(false)}
+            className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            disabled={!errorsQueue || failedMessages.length === 0}
+            onClick={handleAckAll}
+            className="px-5 py-2.5 text-sm font-semibold text-dark-200 hover:text-foreground bg-dark-700/40 hover:bg-dark-700/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
+          >
+            Ack All
+          </button>
+          <button
+            type="button"
+            disabled={!errorsQueue || failedMessages.length === 0}
+            onClick={handleRetryAll}
+            className="px-5 py-2.5 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
+          >
+            Retry All
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const DialogEditFailedMessage = (
+    <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit Failed Message</DialogTitle>
+          <DialogDescription>
+            Update the message details and retry delivery.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div>
+            <label className="block text-sm font-medium text-dark-200 mb-1.5">
+              Method
+            </label>
+            <select
+              value={editMethod}
+              onChange={(e) => setEditMethod(e.target.value)}
+              className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
+              required
+            >
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-dark-200 mb-1.5">
+              Query (JSON)
+            </label>
+            <JsonEditor
+              value={editQuery}
+              onChange={setEditQuery}
+              height={160}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-dark-200 mb-1.5">
+              Body (JSON)
+            </label>
+            <JsonEditor value={editBody} onChange={setEditBody} height={220} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-dark-200 mb-1.5">
+              Headers (JSON)
+            </label>
+            <JsonEditor
+              value={editHeaders}
+              onChange={setEditHeaders}
+              height={160}
+            />
+          </div>
+          {editError && (
+            <p className="text-xs text-neon-red font-mono">{editError}</p>
+          )}
+        </div>
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={handleCloseEdit}
+            disabled={isUpdating}
+            className="px-4 py-2 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmitEdit}
+            disabled={isUpdating || !editMethod || !editBody}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
+          >
+            {isUpdating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              "Update Message"
+            )}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page header */}
@@ -354,514 +943,12 @@ export default function QueuePage() {
             Manage and monitor your message queues
           </p>
         </div>
-        <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
-          <DialogTrigger asChild>
-            <button className="flex items-center gap-2 px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25 shrink-0">
-              <Plus className="w-4 h-4" />
-              <span>New Queue</span>
-            </button>
-          </DialogTrigger>
-          <DialogContent
-            onPointerDownOutside={(e) => e.preventDefault()}
-            onInteractOutside={(e) => e.preventDefault()}
-            className="max-h-[85vh] overflow-y-auto"
-          >
-            <DialogHeader>
-              <DialogTitle>Create queue</DialogTitle>
-              <DialogDescription>
-                Quick-add basic info. You can complete advanced settings on the
-                next step.
-              </DialogDescription>
-            </DialogHeader>
-
-            <form onSubmit={handleCreateNew} className="space-y-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                  Name<span className="text-neon-red ml-1">*</span>
-                </label>
-                <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. order.processing"
-                  className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                  Key<span className="text-neon-red ml-1">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    value={newKey}
-                    onChange={(e) => {
-                      setNewKey(e.target.value);
-                      setNewKeyStatus("idle");
-                    }}
-                    onBlur={handleNewKeyBlur}
-                    placeholder="unique-queue-key"
-                    className={`w-full px-4 py-2.5 bg-dark-900/60 border rounded-xl text-foreground placeholder-dark-400 focus:outline-none transition-all font-mono text-sm pr-10 ${
-                      newKeyStatus === "taken"
-                        ? "border-neon-red/60 focus:border-neon-red/80 focus:ring-1 focus:ring-neon-red/20"
-                        : newKeyStatus === "available"
-                          ? "border-neon-green/60 focus:border-neon-green/80 focus:ring-1 focus:ring-neon-green/20"
-                          : "border-dark-500/50 focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30"
-                    }`}
-                    required
-                  />
-                  {newKeyStatus === "checking" && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-dark-500 border-t-transparent rounded-full animate-spin" />
-                  )}
-                  {newKeyStatus === "available" && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-neon-green" />
-                  )}
-                  {newKeyStatus === "taken" && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-neon-red" />
-                  )}
-                </div>
-                {newKeyStatus === "taken" && (
-                  <p className="text-xs text-neon-red font-mono mt-1">
-                    key already taken
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                  Origin<span className="text-neon-red ml-1">*</span>
-                </label>
-                <input
-                  value={newOrigin}
-                  onChange={(e) => setNewOrigin(e.target.value)}
-                  placeholder="https://your-service.com"
-                  className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                    Batch Count<span className="text-neon-red ml-1">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={newBatchCount}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      setNewBatchCount(e.target.value)
-                    }
-                    className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                    Timeout (sec)<span className="text-neon-red ml-1">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={newTimeout}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      setNewTimeout(e.target.value)
-                    }
-                    className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Timing Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-dark-200 font-medium">
-                      Send Now
-                    </p>
-                    <p className="text-xs text-dark-400 font-mono">
-                      Send messages immediately when added
-                    </p>
-                  </div>
-                  <Switch
-                    checked={newIsSendNow}
-                    onCheckedChange={setNewIsSendNow}
-                  />
-                </div>
-
-                {!newIsSendNow && (
-                  <div className="pl-4 border-l-2 border-accent-500/30">
-                    <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                      Scheduled Time
-                      <span className="text-neon-red ml-1">*</span>
-                    </label>
-                    <input
-                      type="time"
-                      value={newSendLaterTime}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setNewSendLaterTime(e.target.value)
-                      }
-                      className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                      required
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Delay Section */}
-              <div className="space-y-3">
-                {newIsSendNow && (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-dark-200 font-medium">
-                        Use Delay
-                      </p>
-                      <p className="text-xs text-dark-400 font-mono">
-                        Enable delay settings for send-now queues
-                      </p>
-                    </div>
-                    <Switch
-                      checked={newIsUseDelay}
-                      onCheckedChange={setNewIsUseDelay}
-                    />
-                  </div>
-                )}
-
-                {newIsSendNow && newIsUseDelay && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-dark-200 font-medium">
-                          Random Delay
-                        </p>
-                        <p className="text-xs text-dark-400 font-mono">
-                          Add random delay between messages
-                        </p>
-                      </div>
-                      <Switch
-                        checked={newIsRandomDelay}
-                        onCheckedChange={setNewIsRandomDelay}
-                      />
-                    </div>
-
-                    {newIsRandomDelay ? (
-                      <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
-                        <div>
-                          <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                            Min seconds
-                          </label>
-                          <input
-                            type="number"
-                            min={0}
-                            value={newDelayStart}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                              setNewDelayStart(e.target.value)
-                            }
-                            className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                            Max seconds
-                          </label>
-                          <input
-                            type="number"
-                            min={0}
-                            value={newDelayEnd}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                              setNewDelayEnd(e.target.value)
-                            }
-                            className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="pl-4 border-l-2 border-accent-500/30">
-                        <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                          Delay (seconds)
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          value={newDelaySec}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                            setNewDelaySec(e.target.value)
-                          }
-                          placeholder="0"
-                          className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                        />
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-dark-200 font-medium">Headers</p>
-                    <p className="text-xs text-dark-400 font-mono">
-                      Optional HTTP headers
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addNewHeader}
-                    className="px-3 py-1.5 text-xs font-mono text-dark-300 hover:text-foreground border border-dashed border-dark-500/60 hover:border-dark-400/60 rounded-lg transition-all"
-                  >
-                    + Add
-                  </button>
-                </div>
-
-                {newHeaders.length > 0 && (
-                  <div className="space-y-2">
-                    {newHeaders.map((h) => (
-                      <div key={h.id} className="flex gap-2 items-center">
-                        <input
-                          value={h.key}
-                          onChange={(e) =>
-                            updateNewHeader(h.id, "key", e.target.value)
-                          }
-                          placeholder="Header-Key"
-                          className="flex-1 px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                        />
-                        <input
-                          value={h.value}
-                          onChange={(e) =>
-                            updateNewHeader(h.id, "value", e.target.value)
-                          }
-                          placeholder="value"
-                          className="flex-1 px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeNewHeader(h.id)}
-                          className="p-2 rounded-lg text-dark-400 hover:text-neon-red hover:bg-neon-red/5 transition-all shrink-0"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-dark-200 font-medium">
-                      Error trace
-                    </p>
-                    <p className="text-xs text-dark-400 font-mono">
-                      Notify webhook on delivery error
-                    </p>
-                  </div>
-                  <Switch
-                    checked={newErrorTrace}
-                    onCheckedChange={setNewErrorTrace}
-                  />
-                </div>
-                {newErrorTrace && (
-                  <div>
-                    <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                      Error webhook URL
-                      <span className="text-neon-red ml-1">*</span>
-                    </label>
-                    <input
-                      type="url"
-                      value={newErrorWebhook}
-                      onChange={(e) => setNewErrorWebhook(e.target.value)}
-                      placeholder="https://your-service.com/error"
-                      className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                      required
-                    />
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsNewOpen(false)}
-                  className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={
-                    newKeyStatus === "taken" || newKeyStatus === "checking"
-                  }
-                  className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
-                >
-                  Continue
-                </button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        {/* New Queue Dialog */}
+        {DialogNewQueue}
       </div>
 
       {/* Failed Messages dialog */}
-      <Dialog
-        open={isErrorsOpen}
-        onOpenChange={(open) => {
-          setIsErrorsOpen(open);
-          if (!open) setFailedMessages([]);
-        }}
-      >
-        <DialogContent
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
-          className="max-h-[85vh] overflow-y-auto max-w-2xl"
-        >
-          <DialogHeader>
-            <DialogTitle>
-              Failed Messages{errorsQueue ? ` — ${errorsQueue.name}` : ""}
-            </DialogTitle>
-            <DialogDescription>
-              Messages that failed to deliver. You can retry or edit them.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div
-            className={`mt-4 space-y-3 ${
-              failedMessages.length > 5 ? "max-h-105 overflow-y-auto pr-2" : ""
-            }`}
-          >
-            {isLoadingErrors ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-accent-500" />
-              </div>
-            ) : failedMessages.length === 0 ? (
-              <div className="text-sm text-dark-300 font-mono bg-dark-900/40 border border-dark-600/30 rounded-xl p-4">
-                No failed messages.
-              </div>
-            ) : (
-              failedMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className="bg-dark-900/40 border border-dark-600/30 rounded-xl p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-mono px-2 py-0.5 bg-accent-500/20 text-accent-400 rounded">
-                          {msg.method}
-                        </span>
-                        <span className="text-[11px] font-mono text-neon-red border border-neon-red/20 bg-neon-red/10 rounded-md px-2 py-0.5">
-                          failed
-                        </span>
-                      </div>
-                      <p className="text-xs text-dark-400 font-mono">
-                        {formatDate(msg.created_at)}
-                      </p>
-                      {msg.error_message && (
-                        <p className="text-xs text-neon-red font-mono mt-2 break-all">
-                          {msg.error_message}
-                        </p>
-                      )}
-                      <details className="mt-2">
-                        <summary className="text-xs text-dark-400 cursor-pointer hover:text-dark-200">
-                          View details
-                        </summary>
-                        <div className="space-y-2 mt-2">
-                          {msg.query && (
-                            <div>
-                              <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
-                                Query
-                              </p>
-                              <pre className="text-xs text-dark-300 font-mono p-2 bg-dark-900/60 rounded overflow-x-auto max-h-24">
-                                {msg.query}
-                              </pre>
-                            </div>
-                          )}
-                          {msg.headers && (
-                            <div>
-                              <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
-                                Headers
-                              </p>
-                              <pre className="text-xs text-dark-300 font-mono p-2 bg-dark-900/60 rounded overflow-x-auto max-h-24">
-                                {msg.headers}
-                              </pre>
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
-                              Body
-                            </p>
-                            <pre className="text-xs text-dark-300 font-mono p-2 bg-dark-900/60 rounded overflow-x-auto max-h-32">
-                              {msg.body}
-                            </pre>
-                          </div>
-                        </div>
-                      </details>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(msg)}
-                        className="px-3 py-1.5 text-xs font-semibold text-dark-200 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-lg transition-all flex items-center gap-1"
-                      >
-                        <Edit className="w-3 h-3" />
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAckMessage(msg.id)}
-                        className="px-3 py-1.5 text-xs font-semibold text-dark-200 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-lg transition-all"
-                      >
-                        Ack
-                      </button>
-                      <button
-                        type="button"
-                        disabled={retryingIds.has(msg.id)}
-                        onClick={() => handleRetryMessage(msg.id)}
-                        className="px-3 py-1.5 text-xs font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 rounded-lg transition-all flex items-center gap-1"
-                      >
-                        {retryingIds.has(msg.id) ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-3 h-3" />
-                        )}
-                        Retry
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          <DialogFooter className="pt-4">
-            <button
-              type="button"
-              onClick={() => setIsErrorsOpen(false)}
-              className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              disabled={!errorsQueue || failedMessages.length === 0}
-              onClick={handleAckAll}
-              className="px-5 py-2.5 text-sm font-semibold text-dark-200 hover:text-foreground bg-dark-700/40 hover:bg-dark-700/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
-            >
-              Ack All
-            </button>
-            <button
-              type="button"
-              disabled={!errorsQueue || failedMessages.length === 0}
-              onClick={handleRetryAll}
-              className="px-5 py-2.5 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all hover:shadow-lg hover:shadow-accent-500/25"
-            >
-              Retry All
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {DialogFailedMessages}
 
       {/* Queue cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -879,93 +966,7 @@ export default function QueuePage() {
       </div>
 
       {/* Edit Message Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Failed Message</DialogTitle>
-            <DialogDescription>
-              Update the message details and retry delivery.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                Method
-              </label>
-              <select
-                value={editMethod}
-                onChange={(e) => setEditMethod(e.target.value)}
-                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                required
-              >
-                <option value="GET">GET</option>
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-                <option value="PATCH">PATCH</option>
-                <option value="DELETE">DELETE</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                Query (JSON)
-              </label>
-              <JsonEditor
-                value={editQuery}
-                onChange={setEditQuery}
-                height={160}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                Body (JSON)
-              </label>
-              <JsonEditor
-                value={editBody}
-                onChange={setEditBody}
-                height={220}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                Headers (JSON)
-              </label>
-              <JsonEditor
-                value={editHeaders}
-                onChange={setEditHeaders}
-                height={160}
-              />
-            </div>
-            {editError && (
-              <p className="text-xs text-neon-red font-mono">{editError}</p>
-            )}
-          </div>
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={handleCloseEdit}
-              disabled={isUpdating}
-              className="px-4 py-2 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmitEdit}
-              disabled={isUpdating || !editMethod || !editBody}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
-            >
-              {isUpdating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                "Update Message"
-              )}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {DialogEditFailedMessage}
     </div>
   );
 }

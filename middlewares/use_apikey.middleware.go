@@ -30,6 +30,7 @@ func UseApiKey(c *fiber.Ctx) error {
 		key = c.Query("api_key")
 	}
 	if key == "" {
+		// check apakah punya token jwt
 		return dto.Unauthorized(c, "API key is required", nil)
 	}
 

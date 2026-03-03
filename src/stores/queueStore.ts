@@ -160,14 +160,10 @@ export const useQueueStore = create<QueueState>()((set, get) => ({
   create: async (payload) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await queueService.create(payload);
-      if (res.data) {
-        const resp = await queueService.getAll();
-        if (resp.data) {
-          set({ items: resp.data.map(mapQueueApiToItem), isLoading: false });
-        } else {
-          set({ isLoading: false });
-        }
+      await queueService.create(payload);
+      const resp = await queueService.getAll();
+      if (resp.data) {
+        set({ items: resp.data.map(mapQueueApiToItem), isLoading: false });
       } else {
         set({ isLoading: false });
       }
