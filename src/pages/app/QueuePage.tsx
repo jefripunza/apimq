@@ -235,7 +235,6 @@ export default function QueuePage() {
 
         <div className="mt-4">
           <QueueForm
-            variant="dialog"
             autoFocusName
             onSuccess={() => setIsNewOpen(false)}
             onCancel={() => setIsNewOpen(false)}

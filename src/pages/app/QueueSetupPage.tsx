@@ -19,11 +19,7 @@ export default function QueueSetupPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id && id !== "new";
 
-  const {
-    items: queues,
-    fetchById,
-    remove: removeQueue,
-  } = useQueueStore();
+  const { items: queues, fetchById, remove: removeQueue } = useQueueStore();
 
   const [queue, setQueue] = useState<Queue | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -158,7 +154,6 @@ export default function QueueSetupPage() {
 
       <div className="pb-6">
         <QueueForm
-          variant="page"
           queue={queue}
           onSuccess={handleSuccess}
           onCancel={handleCancel}

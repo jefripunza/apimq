@@ -25,10 +25,7 @@ import type {
   UpdateQueuePayload,
 } from "@/services/queue.service";
 
-type Variant = "page" | "dialog";
-
 type Props = {
-  variant: Variant;
   queue?: Queue | null;
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -69,47 +66,7 @@ function KeyStatusHint({ keyStatus }: { keyStatus: KeyStatus }) {
   );
 }
 
-function TextInput({
-  variant,
-  ...props
-}: {
-  variant: Variant;
-} & React.InputHTMLAttributes<HTMLInputElement>) {
-  if (variant === "page") {
-    return <Input {...props} />;
-  }
-
-  return (
-    <input
-      {...props}
-      className={`w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm ${props.className ?? ""}`}
-    />
-  );
-}
-
-function FieldLabel({
-  variant,
-  required,
-  children,
-}: {
-  variant: Variant;
-  required?: boolean;
-  children: string;
-}) {
-  if (variant === "page") {
-    return <Label required={required}>{children}</Label>;
-  }
-
-  return (
-    <label className="block text-sm font-medium text-dark-200 mb-1.5">
-      {children}
-      {required && <span className="text-neon-red ml-1">*</span>}
-    </label>
-  );
-}
-
 export default function QueueForm({
-  variant,
   queue,
   onSuccess,
   onCancel,
@@ -330,22 +287,18 @@ export default function QueueForm({
     }
   };
 
-  const basicBlockClass =
-    variant === "page"
-      ? "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-5"
-      : "space-y-4";
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className={basicBlockClass}>
-        {variant === "page" && <SectionTitle>Basic Info</SectionTitle>}
+      <div
+        className={
+          "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-5"
+        }
+      >
+        <SectionTitle>Basic Info</SectionTitle>
 
         <div>
-          <FieldLabel variant={variant} required>
-            Name
-          </FieldLabel>
-          <TextInput
-            variant={variant}
+          <Label required>Name</Label>
+          <Input
             value={name}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
               setName(e.target.value)
@@ -357,11 +310,8 @@ export default function QueueForm({
         </div>
 
         <div>
-          <FieldLabel variant={variant} required>
-            Key
-          </FieldLabel>
-          <TextInput
-            variant={variant}
+          <Label required>Key</Label>
+          <Input
             value={key}
             onChange={(e: ChangeEvent<HTMLInputElement>) => {
               setKey(e.target.value);
@@ -376,11 +326,8 @@ export default function QueueForm({
         </div>
 
         <div>
-          <FieldLabel variant={variant} required>
-            Origin
-          </FieldLabel>
-          <TextInput
-            variant={variant}
+          <Label required>Origin</Label>
+          <Input
             value={origin}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
               setOrigin(e.target.value)
@@ -392,9 +339,8 @@ export default function QueueForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <FieldLabel variant={variant}>Color</FieldLabel>
-            <TextInput
-              variant={variant}
+            <Label required>Color</Label>
+            <Input
               type="color"
               value={color}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -425,21 +371,17 @@ export default function QueueForm({
 
       <div
         className={
-          variant === "page"
-            ? "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4"
-            : "space-y-2"
+          "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4"
         }
       >
-        {variant === "page" && <SectionTitle>Headers</SectionTitle>}
+        <SectionTitle>Headers</SectionTitle>
         <div className="flex items-center justify-between">
-          {variant === "dialog" && (
-            <div>
-              <p className="text-sm text-dark-200 font-medium">Headers</p>
-              <p className="text-xs text-dark-400 font-mono">
-                Optional HTTP headers
-              </p>
-            </div>
-          )}
+          <div>
+            <p className="text-sm text-dark-200 font-medium">Headers</p>
+            <p className="text-xs text-dark-400 font-mono">
+              Optional HTTP headers
+            </p>
+          </div>
           <button
             type="button"
             onClick={addHeader}
@@ -454,8 +396,7 @@ export default function QueueForm({
           <div className="space-y-2">
             {headers.map((h) => (
               <div key={h.id} className="flex gap-2 items-center">
-                <TextInput
-                  variant={variant}
+                <Input
                   value={h.key}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     updateHeader(h.id, "key", e.target.value)
@@ -463,8 +404,7 @@ export default function QueueForm({
                   placeholder="Header-Key"
                   className="flex-1"
                 />
-                <TextInput
-                  variant={variant}
+                <Input
                   value={h.value}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     updateHeader(h.id, "value", e.target.value)
@@ -487,19 +427,14 @@ export default function QueueForm({
 
       <div
         className={
-          variant === "page"
-            ? "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4"
-            : "space-y-4"
+          "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4"
         }
       >
-        {variant === "page" && <SectionTitle>Batch</SectionTitle>}
+        <SectionTitle>Batch</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <FieldLabel variant={variant} required>
-              Batch Count
-            </FieldLabel>
-            <TextInput
-              variant={variant}
+            <Label required>Batch Count</Label>
+            <Input
               type="number"
               min={1}
               value={batchCount}
@@ -510,11 +445,8 @@ export default function QueueForm({
             />
           </div>
           <div>
-            <FieldLabel variant={variant} required>
-              Timeout (sec)
-            </FieldLabel>
-            <TextInput
-              variant={variant}
+            <Label required>Timeout (sec)</Label>
+            <Input
               type="number"
               min={1}
               value={timeout}
@@ -529,12 +461,10 @@ export default function QueueForm({
 
       <div
         className={
-          variant === "page"
-            ? "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4"
-            : "space-y-3"
+          "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4"
         }
       >
-        {variant === "page" && <SectionTitle>Timing & Delay</SectionTitle>}
+        <SectionTitle>Timing & Delay</SectionTitle>
 
         <div className="flex items-center justify-between">
           <div>
@@ -548,11 +478,8 @@ export default function QueueForm({
 
         {!isSendNow && (
           <div className="pl-4 border-l-2 border-accent-500/30">
-            <FieldLabel variant={variant} required>
-              Scheduled Time
-            </FieldLabel>
-            <TextInput
-              variant={variant}
+            <Label required>Scheduled Time</Label>
+            <Input
               type="time"
               value={sendLaterTime}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -595,9 +522,8 @@ export default function QueueForm({
             {isRandomDelay ? (
               <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
                 <div>
-                  <FieldLabel variant={variant}>Min seconds</FieldLabel>
-                  <TextInput
-                    variant={variant}
+                  <Label>Min seconds</Label>
+                  <Input
                     type="number"
                     min={0}
                     value={delayStart}
@@ -607,9 +533,8 @@ export default function QueueForm({
                   />
                 </div>
                 <div>
-                  <FieldLabel variant={variant}>Max seconds</FieldLabel>
-                  <TextInput
-                    variant={variant}
+                  <Label>Max seconds</Label>
+                  <Input
                     type="number"
                     min={0}
                     value={delayEnd}
@@ -621,9 +546,8 @@ export default function QueueForm({
               </div>
             ) : (
               <div className="pl-4 border-l-2 border-accent-500/30">
-                <FieldLabel variant={variant}>Delay (seconds)</FieldLabel>
-                <TextInput
-                  variant={variant}
+                <Label>Delay (seconds)</Label>
+                <Input
                   type="number"
                   min={0}
                   value={delaySec}
@@ -639,12 +563,10 @@ export default function QueueForm({
 
       <div
         className={
-          variant === "page"
-            ? "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4"
-            : "space-y-2"
+          "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4"
         }
       >
-        {variant === "page" && <SectionTitle>Error Handling</SectionTitle>}
+        <SectionTitle>Error Handling</SectionTitle>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-dark-200 font-medium">Error trace</p>
@@ -657,11 +579,8 @@ export default function QueueForm({
 
         {errorTrace && (
           <div className="pl-4 border-l-2 border-neon-red/30">
-            <FieldLabel variant={variant} required>
-              Error webhook URL
-            </FieldLabel>
-            <TextInput
-              variant={variant}
+            <Label required>Error webhook URL</Label>
+            <Input
               type="url"
               value={errorWebhook}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
