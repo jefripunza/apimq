@@ -3,6 +3,7 @@ package middlewares
 import (
 	"apimq/dto"
 	"apimq/variable"
+	"context"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -30,7 +31,12 @@ func UseApiKey(c *fiber.Ctx) error {
 		key = c.Query("api_key")
 	}
 	if key == "" {
-		// check apakah punya token jwt
+		claims, errMsg := validateBearerToken(c.Get("Authorization"))
+		if errMsg == "" {
+			ctx := context.WithValue(c.UserContext(), ClaimsContextKey, claims)
+			c.SetUserContext(ctx)
+			return c.Next()
+		}
 		return dto.Unauthorized(c, "API key is required", nil)
 	}
 

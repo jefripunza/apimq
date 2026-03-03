@@ -12,38 +12,40 @@ import (
 )
 
 type CreateQueueRequest struct {
-	Name          string                 `json:"name"`
-	Key           string                 `json:"key"`
-	Color         string                 `json:"color"`
-	Origin        string                 `json:"origin"`
-	BatchCount    int                    `json:"batchCount"`
-	Timeout       int                    `json:"timeout"`
-	Headers       []map[string]string    `json:"headers"`
-	IsSendNow     bool                   `json:"isSendNow"`
-	SendLaterTime *string                `json:"sendLaterTime,omitempty"`
-	IsUseDelay    bool                   `json:"isUseDelay"`
-	IsRandomDelay bool                   `json:"isRandomDelay"`
-	DelaySec      int                    `json:"delaySec"`
-	DelayStart    int                    `json:"delayStart"`
-	DelayEnd      int                    `json:"delayEnd"`
-	ErrorTrace    map[string]interface{} `json:"errorTrace,omitempty"`
+	Name           string                 `json:"name"`
+	Key            string                 `json:"key"`
+	Color          string                 `json:"color"`
+	Origin         string                 `json:"origin"`
+	BatchCount     int                    `json:"batchCount"`
+	Timeout        int                    `json:"timeout"`
+	Headers        []map[string]string    `json:"headers"`
+	IsSendNow      bool                   `json:"isSendNow"`
+	SendLaterTime  *string                `json:"sendLaterTime,omitempty"`
+	IsUseDelay     bool                   `json:"isUseDelay"`
+	IsRandomDelay  bool                   `json:"isRandomDelay"`
+	DelaySec       int                    `json:"delaySec"`
+	DelayStart     int                    `json:"delayStart"`
+	DelayEnd       int                    `json:"delayEnd"`
+	IsWaitResponse *bool                  `json:"isWaitResponse,omitempty"`
+	ErrorTrace     map[string]interface{} `json:"errorTrace,omitempty"`
 }
 
 type UpdateQueueRequest struct {
-	Name          string                 `json:"name"`
-	Color         string                 `json:"color"`
-	Origin        string                 `json:"origin"`
-	BatchCount    int                    `json:"batchCount"`
-	Timeout       int                    `json:"timeout"`
-	Headers       []map[string]string    `json:"headers"`
-	IsSendNow     bool                   `json:"isSendNow"`
-	SendLaterTime *string                `json:"sendLaterTime,omitempty"`
-	IsUseDelay    bool                   `json:"isUseDelay"`
-	IsRandomDelay bool                   `json:"isRandomDelay"`
-	DelaySec      int                    `json:"delaySec"`
-	DelayStart    int                    `json:"delayStart"`
-	DelayEnd      int                    `json:"delayEnd"`
-	ErrorTrace    map[string]interface{} `json:"errorTrace,omitempty"`
+	Name           string                 `json:"name"`
+	Color          string                 `json:"color"`
+	Origin         string                 `json:"origin"`
+	BatchCount     int                    `json:"batchCount"`
+	Timeout        int                    `json:"timeout"`
+	Headers        []map[string]string    `json:"headers"`
+	IsSendNow      bool                   `json:"isSendNow"`
+	SendLaterTime  *string                `json:"sendLaterTime,omitempty"`
+	IsUseDelay     bool                   `json:"isUseDelay"`
+	IsRandomDelay  bool                   `json:"isRandomDelay"`
+	DelaySec       int                    `json:"delaySec"`
+	DelayStart     int                    `json:"delayStart"`
+	DelayEnd       int                    `json:"delayEnd"`
+	IsWaitResponse *bool                  `json:"isWaitResponse,omitempty"`
+	ErrorTrace     map[string]interface{} `json:"errorTrace,omitempty"`
 }
 
 type ToggleQueueRequest struct {
@@ -94,23 +96,29 @@ func Create(c *fiber.Ctx) error {
 		req.DelayEnd = 0
 	}
 
+	isWaitResponse := true
+	if req.IsWaitResponse != nil {
+		isWaitResponse = *req.IsWaitResponse
+	}
+
 	queue := Queue{
-		Name:          req.Name,
-		Key:           req.Key,
-		Color:         req.Color,
-		Origin:        req.Origin,
-		BatchCount:    req.BatchCount,
-		Timeout:       req.Timeout,
-		Headers:       string(headersJSON),
-		IsSendNow:     req.IsSendNow,
-		SendLaterTime: sendLaterTime,
-		IsUseDelay:    req.IsUseDelay,
-		IsRandomDelay: req.IsRandomDelay,
-		DelaySec:      req.DelaySec,
-		DelayStart:    req.DelayStart,
-		DelayEnd:      req.DelayEnd,
-		ErrorTrace:    string(errorTraceJSON),
-		Enabled:       true,
+		Name:           req.Name,
+		Key:            req.Key,
+		Color:          req.Color,
+		Origin:         req.Origin,
+		BatchCount:     req.BatchCount,
+		Timeout:        req.Timeout,
+		Headers:        string(headersJSON),
+		IsSendNow:      req.IsSendNow,
+		SendLaterTime:  sendLaterTime,
+		IsUseDelay:     req.IsUseDelay,
+		IsRandomDelay:  req.IsRandomDelay,
+		DelaySec:       req.DelaySec,
+		DelayStart:     req.DelayStart,
+		DelayEnd:       req.DelayEnd,
+		IsWaitResponse: isWaitResponse,
+		ErrorTrace:     string(errorTraceJSON),
+		Enabled:        true,
 	}
 
 	if req.BatchCount == 0 {
@@ -298,6 +306,9 @@ func UpdateByID(c *fiber.Ctx) error {
 	queue.DelaySec = req.DelaySec
 	queue.DelayStart = req.DelayStart
 	queue.DelayEnd = req.DelayEnd
+	if req.IsWaitResponse != nil {
+		queue.IsWaitResponse = *req.IsWaitResponse
+	}
 	queue.ErrorTrace = string(errorTraceJSON)
 
 	if req.BatchCount == 0 {

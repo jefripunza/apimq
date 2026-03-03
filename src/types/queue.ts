@@ -34,6 +34,7 @@ export type Queue = {
   delaySec?: number;
   delayStart?: number;
   delayEnd?: number;
+  isWaitResponse?: boolean;
   errorTrace?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;

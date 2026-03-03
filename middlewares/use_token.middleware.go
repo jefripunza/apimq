@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -12,15 +13,18 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func UseToken(c *fiber.Ctx) error {
-	authHeader := c.Get("Authorization")
+type claimsContextKey string
+
+const ClaimsContextKey claimsContextKey = "claims"
+
+func validateBearerToken(authHeader string) (jwt.MapClaims, string) {
 	if authHeader == "" {
-		return dto.Unauthorized(c, "Missing authorization header", nil)
+		return nil, "Missing authorization header"
 	}
 
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-		return dto.Unauthorized(c, "Invalid authorization format", nil)
+		return nil, "Invalid authorization format"
 	}
 
 	tok, err := jwt.Parse(parts[1], func(t *jwt.Token) (interface{}, error) {
@@ -30,23 +34,32 @@ func UseToken(c *fiber.Ctx) error {
 		return environment.GetJWTSecret(), nil
 	})
 	if err != nil || tok == nil || !tok.Valid {
-		return dto.Unauthorized(c, "Invalid or expired token", nil)
+		return nil, "Invalid or expired token"
 	}
 
 	claims, ok := tok.Claims.(jwt.MapClaims)
 	if !ok {
-		return dto.Unauthorized(c, "Invalid token payload", nil)
+		return nil, "Invalid token payload"
 	}
 
-	// calculate expired
 	now := time.Now().Unix()
 	expiredAt, ok := claims["exp"].(float64)
 	if !ok {
-		return dto.Unauthorized(c, "Invalid token payload", nil)
+		return nil, "Invalid token payload"
 	}
 	if expiredAt < float64(now) {
-		return dto.Unauthorized(c, "Token expired", nil)
+		return nil, "Token expired"
 	}
 
+	return claims, ""
+}
+
+func UseToken(c *fiber.Ctx) error {
+	claims, errMsg := validateBearerToken(c.Get("Authorization"))
+	if errMsg != "" {
+		return dto.Unauthorized(c, errMsg, nil)
+	}
+	ctx := context.WithValue(c.UserContext(), ClaimsContextKey, claims)
+	c.SetUserContext(ctx)
 	return c.Next()
 }

@@ -21,6 +21,7 @@ export interface QueueApi {
   delay_sec: number;
   delay_start: number;
   delay_end: number;
+  is_wait_response: boolean;
   error_trace: string;
   created_at: string;
   updated_at: string;
@@ -41,6 +42,7 @@ export type CreateQueuePayload = {
   delaySec?: number;
   delayStart?: number;
   delayEnd?: number;
+  isWaitResponse?: boolean;
   errorTrace?: Record<string, unknown>;
 };
 

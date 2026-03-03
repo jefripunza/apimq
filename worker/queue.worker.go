@@ -13,7 +13,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -445,9 +444,6 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 	if msg.Body != "" {
 		bodyReader = bytes.NewBufferString(msg.Body)
 	}
-
-	log.Println("HTTP_PROXY:", os.Getenv("HTTP_PROXY"))
-	log.Println("HTTPS_PROXY:", os.Getenv("HTTPS_PROXY"))
 
 	req, err := http.NewRequest(method, targetURL, bodyReader)
 	if err != nil {

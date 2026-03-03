@@ -1,13 +1,8 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQueueStore } from "@/stores/queueStore";
 import { getSocket } from "@/lib/socket";
 import { Plus } from "lucide-react";
+import QueueFormFields from "@/components/QueueFormFields";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
 import { uid } from "@/utils/random";
 import { formatDate } from "@/utils/datetime";
 import QueueCard from "@/components/QueueCard";
@@ -111,6 +105,7 @@ export default function QueuePage() {
   const [newName, setNewName] = useState("");
   const [newKey, setNewKey] = useState("");
   const [newOrigin, setNewOrigin] = useState("");
+  const [newColor, setNewColor] = useState("#6366f1");
   const [newBatchCount, setNewBatchCount] = useState("1");
   const [newTimeout, setNewTimeout] = useState("30");
   const [newHeaders, setNewHeaders] = useState<HeaderEntry[]>([]);
@@ -122,6 +117,7 @@ export default function QueuePage() {
   const [newDelaySec, setNewDelaySec] = useState("");
   const [newDelayStart, setNewDelayStart] = useState("");
   const [newDelayEnd, setNewDelayEnd] = useState("");
+  const [newIsWaitResponse, setNewIsWaitResponse] = useState(true);
   // Error trace
   const [newErrorTrace, setNewErrorTrace] = useState(false);
   const [newErrorWebhook, setNewErrorWebhook] = useState("");
@@ -133,6 +129,7 @@ export default function QueuePage() {
     setNewName("");
     setNewKey("");
     setNewOrigin("");
+    setNewColor("#6366f1");
     setNewBatchCount("1");
     setNewTimeout("30");
     setNewHeaders([]);
@@ -143,6 +140,7 @@ export default function QueuePage() {
     setNewDelaySec("");
     setNewDelayStart("");
     setNewDelayEnd("");
+    setNewIsWaitResponse(true);
     setNewErrorTrace(false);
     setNewErrorWebhook("");
     setNewKeyStatus("idle");
@@ -207,6 +205,7 @@ export default function QueuePage() {
       name: newName,
       key: newKey,
       origin: newOrigin,
+      color: newColor,
       batchCount: Number(newBatchCount || 1),
       timeout: Number(newTimeout || 30),
       headers: newHeaders
@@ -222,6 +221,7 @@ export default function QueuePage() {
       delaySec: !newIsRandomDelay ? Number(newDelaySec || 0) : 0,
       delayStart: newIsRandomDelay ? Number(newDelayStart || 0) : 0,
       delayEnd: newIsRandomDelay ? Number(newDelayEnd || 0) : 0,
+      isWaitResponse: newIsWaitResponse,
       errorTrace,
     });
 
@@ -366,305 +366,51 @@ export default function QueuePage() {
         </DialogHeader>
 
         <form onSubmit={handleCreateNew} className="space-y-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-dark-200 mb-1.5">
-              Name<span className="text-neon-red ml-1">*</span>
-            </label>
-            <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. order.processing"
-              className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-              required
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-dark-200 mb-1.5">
-              Key<span className="text-neon-red ml-1">*</span>
-            </label>
-            <div className="relative">
-              <input
-                value={newKey}
-                onChange={(e) => {
-                  setNewKey(e.target.value);
-                  setNewKeyStatus("idle");
-                }}
-                onBlur={handleNewKeyBlur}
-                placeholder="unique-queue-key"
-                className={`w-full px-4 py-2.5 bg-dark-900/60 border rounded-xl text-foreground placeholder-dark-400 focus:outline-none transition-all font-mono text-sm pr-10 ${
-                  newKeyStatus === "taken"
-                    ? "border-neon-red/60 focus:border-neon-red/80 focus:ring-1 focus:ring-neon-red/20"
-                    : newKeyStatus === "available"
-                      ? "border-neon-green/60 focus:border-neon-green/80 focus:ring-1 focus:ring-neon-green/20"
-                      : "border-dark-500/50 focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30"
-                }`}
-                required
-              />
-              {newKeyStatus === "checking" && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-dark-500 border-t-transparent rounded-full animate-spin" />
-              )}
-              {newKeyStatus === "available" && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-neon-green" />
-              )}
-              {newKeyStatus === "taken" && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-neon-red" />
-              )}
-            </div>
-            {newKeyStatus === "taken" && (
-              <p className="text-xs text-neon-red font-mono mt-1">
-                key already taken
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-dark-200 mb-1.5">
-              Origin<span className="text-neon-red ml-1">*</span>
-            </label>
-            <input
-              value={newOrigin}
-              onChange={(e) => setNewOrigin(e.target.value)}
-              placeholder="https://your-service.com"
-              className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                Batch Count<span className="text-neon-red ml-1">*</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={newBatchCount}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setNewBatchCount(e.target.value)
-                }
-                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                Timeout (sec)<span className="text-neon-red ml-1">*</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={newTimeout}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setNewTimeout(e.target.value)
-                }
-                className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Timing Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-dark-200 font-medium">Send Now</p>
-                <p className="text-xs text-dark-400 font-mono">
-                  Send messages immediately when added
-                </p>
-              </div>
-              <Switch
-                checked={newIsSendNow}
-                onCheckedChange={setNewIsSendNow}
-              />
-            </div>
-
-            {!newIsSendNow && (
-              <div className="pl-4 border-l-2 border-accent-500/30">
-                <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                  Scheduled Time
-                  <span className="text-neon-red ml-1">*</span>
-                </label>
-                <input
-                  type="time"
-                  value={newSendLaterTime}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setNewSendLaterTime(e.target.value)
-                  }
-                  className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                  required
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Delay Section */}
-          <div className="space-y-3">
-            {newIsSendNow && (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-dark-200 font-medium">Use Delay</p>
-                  <p className="text-xs text-dark-400 font-mono">
-                    Enable delay settings for send-now queues
-                  </p>
-                </div>
-                <Switch
-                  checked={newIsUseDelay}
-                  onCheckedChange={setNewIsUseDelay}
-                />
-              </div>
-            )}
-
-            {newIsSendNow && newIsUseDelay && (
-              <>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-dark-200 font-medium">
-                      Random Delay
-                    </p>
-                    <p className="text-xs text-dark-400 font-mono">
-                      Add random delay between messages
-                    </p>
-                  </div>
-                  <Switch
-                    checked={newIsRandomDelay}
-                    onCheckedChange={setNewIsRandomDelay}
-                  />
-                </div>
-
-                {newIsRandomDelay ? (
-                  <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
-                    <div>
-                      <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                        Min seconds
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={newDelayStart}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setNewDelayStart(e.target.value)
-                        }
-                        className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                        Max seconds
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={newDelayEnd}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setNewDelayEnd(e.target.value)
-                        }
-                        className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="pl-4 border-l-2 border-accent-500/30">
-                    <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                      Delay (seconds)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={newDelaySec}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setNewDelaySec(e.target.value)
-                      }
-                      placeholder="0"
-                      className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                    />
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-dark-200 font-medium">Headers</p>
-                <p className="text-xs text-dark-400 font-mono">
-                  Optional HTTP headers
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={addNewHeader}
-                className="px-3 py-1.5 text-xs font-mono text-dark-300 hover:text-foreground border border-dashed border-dark-500/60 hover:border-dark-400/60 rounded-lg transition-all"
-              >
-                + Add
-              </button>
-            </div>
-
-            {newHeaders.length > 0 && (
-              <div className="space-y-2">
-                {newHeaders.map((h) => (
-                  <div key={h.id} className="flex gap-2 items-center">
-                    <input
-                      value={h.key}
-                      onChange={(e) =>
-                        updateNewHeader(h.id, "key", e.target.value)
-                      }
-                      placeholder="Header-Key"
-                      className="flex-1 px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                    />
-                    <input
-                      value={h.value}
-                      onChange={(e) =>
-                        updateNewHeader(h.id, "value", e.target.value)
-                      }
-                      placeholder="value"
-                      className="flex-1 px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeNewHeader(h.id)}
-                      className="p-2 rounded-lg text-dark-400 hover:text-neon-red hover:bg-neon-red/5 transition-all shrink-0"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-dark-200 font-medium">Error trace</p>
-                <p className="text-xs text-dark-400 font-mono">
-                  Notify webhook on delivery error
-                </p>
-              </div>
-              <Switch
-                checked={newErrorTrace}
-                onCheckedChange={setNewErrorTrace}
-              />
-            </div>
-            {newErrorTrace && (
-              <div>
-                <label className="block text-sm font-medium text-dark-200 mb-1.5">
-                  Error webhook URL
-                  <span className="text-neon-red ml-1">*</span>
-                </label>
-                <input
-                  type="url"
-                  value={newErrorWebhook}
-                  onChange={(e) => setNewErrorWebhook(e.target.value)}
-                  placeholder="https://your-service.com/error"
-                  className="w-full px-4 py-2.5 bg-dark-900/60 border border-dark-500/50 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30 transition-all font-mono text-sm"
-                  required
-                />
-              </div>
-            )}
-          </div>
+          <QueueFormFields
+            variant="dialog"
+            name={newName}
+            keyValue={newKey}
+            origin={newOrigin}
+            color={newColor}
+            batchCount={newBatchCount}
+            timeout={newTimeout}
+            isSendNow={newIsSendNow}
+            sendLaterTime={newSendLaterTime}
+            isUseDelay={newIsUseDelay}
+            isRandomDelay={newIsRandomDelay}
+            delaySec={newDelaySec}
+            delayStart={newDelayStart}
+            delayEnd={newDelayEnd}
+            isWaitResponse={newIsWaitResponse}
+            errorTrace={newErrorTrace}
+            errorWebhook={newErrorWebhook}
+            headers={newHeaders}
+            keyStatus={newKeyStatus}
+            autoFocusName
+            onNameChange={setNewName}
+            onKeyChange={(value) => {
+              setNewKey(value);
+              setNewKeyStatus("idle");
+            }}
+            onOriginChange={setNewOrigin}
+            onColorChange={setNewColor}
+            onBatchCountChange={setNewBatchCount}
+            onTimeoutChange={setNewTimeout}
+            onIsSendNowChange={setNewIsSendNow}
+            onSendLaterTimeChange={setNewSendLaterTime}
+            onIsUseDelayChange={setNewIsUseDelay}
+            onIsRandomDelayChange={setNewIsRandomDelay}
+            onDelaySecChange={setNewDelaySec}
+            onDelayStartChange={setNewDelayStart}
+            onDelayEndChange={setNewDelayEnd}
+            onIsWaitResponseChange={setNewIsWaitResponse}
+            onErrorTraceChange={setNewErrorTrace}
+            onErrorWebhookChange={setNewErrorWebhook}
+            onAddHeader={addNewHeader}
+            onUpdateHeader={updateNewHeader}
+            onRemoveHeader={removeNewHeader}
+            onKeyBlur={handleNewKeyBlur}
+          />
 
           <DialogFooter className="pt-2">
             <button
