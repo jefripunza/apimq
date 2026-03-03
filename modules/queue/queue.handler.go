@@ -5,6 +5,7 @@ import (
 	"apimq/variable"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -373,6 +374,32 @@ func PatchToggleByID(c *fiber.Ctx) error {
 
 // ---------------------------------------------------- //
 
+// Mutex-protected map to track per-queue message insert counts
+var (
+	queueInsertCountsMu sync.RWMutex
+	queueInsertCounts   = make(map[string]int)
+)
+
+// IncrementQueueInsertCount increments the insert count for a queue key
+func IncrementQueueInsertCount(queueKey string) {
+	queueInsertCountsMu.Lock()
+	defer queueInsertCountsMu.Unlock()
+	queueInsertCounts[queueKey]++
+}
+
+// GetAndResetQueueInsertCounts returns the current counts and resets them to zero
+func GetAndResetQueueInsertCounts() map[string]int {
+	queueInsertCountsMu.Lock()
+	defer queueInsertCountsMu.Unlock()
+	result := make(map[string]int, len(queueInsertCounts))
+	for k, v := range queueInsertCounts {
+		result[k] = v
+	}
+	// Reset
+	queueInsertCounts = make(map[string]int)
+	return result
+}
+
 type AddToMessageRequest struct {
 	QueueID string  `json:"queue_id"`
 	Key     string  `json:"key"`
@@ -426,6 +453,9 @@ func AddToMessage(c *fiber.Ctx) error {
 	if err := variable.Db.Create(&message).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to add message to queue", nil)
 	}
+
+	// Increment per-queue insert counter for live stats
+	IncrementQueueInsertCount(queue.Key)
 
 	return dto.OK(c, "Message added to queue successfully", nil)
 }

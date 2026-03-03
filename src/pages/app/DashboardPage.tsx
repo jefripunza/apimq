@@ -12,7 +12,6 @@ import StatCard from "@/components/StatCard";
 import LineChart from "@/components/LineChart";
 
 import { useDashboardStore } from "@/stores/dashboardStore";
-import { clamp, randomWalk } from "@/utils/random";
 import { getSocket } from "@/lib/socket";
 
 export default function DashboardPage() {
@@ -22,53 +21,40 @@ export default function DashboardPage() {
     fetchStats();
   }, [fetchStats]);
 
-  // Subscribe to live_data socket room for real-time stats updates
-  const socketRef = useRef(getSocket());
-  useEffect(() => {
-    const socket = socketRef.current;
-    socket.emit("join_live_data");
-    socket.on("live_data", (data: typeof stats) => {
-      setStats(data);
-    });
-    return () => {
-      socket.emit("leave_live_data");
-      socket.off("live_data");
-    };
-  }, [setStats]);
-
   const maxPoints = 60;
 
   const [seriesData, setSeriesData] = useState<
     Record<string, Array<[number, number]>>
   >({});
 
+  // Subscribe to live_data socket room for real-time stats updates
+  const socketRef = useRef(getSocket());
   useEffect(() => {
-    const id = window.setInterval(() => {
+    const socket = socketRef.current;
+    socket.emit("join_live_data");
+
+    const onLiveData = (data: typeof stats) => {
+      setStats(data);
+
       const t = Date.now();
+      const counts = data.queue ?? {};
+
       setSeriesData((prev) => {
         const next: Record<string, Array<[number, number]>> = { ...prev };
 
         for (const q of queues) {
           const key = q.key;
-          const base = Math.max(1, q.completedCount);
           const existing = next[key] ?? [];
+          const y = counts[key] ?? 0;
 
           if (existing.length === 0) {
             next[key] = Array.from({ length: maxPoints }, (_, i) => {
               const ts = t - (maxPoints - 1 - i) * 1000;
-              const y = clamp(
-                base + (Math.random() - 0.5) * base * 0.3,
-                0,
-                base * 2,
-              );
-              return [ts, y];
+              return [ts, 0];
             });
-            continue;
           }
 
-          const lastY = existing[existing.length - 1][1];
-          const y = randomWalk(lastY, base);
-          next[key] = [...existing, [t, y] as [number, number]].slice(
+          next[key] = [...(next[key] ?? []), [t, y] as [number, number]].slice(
             -maxPoints,
           );
         }
@@ -80,10 +66,14 @@ export default function DashboardPage() {
 
         return next;
       });
-    }, 1000);
+    };
 
-    return () => window.clearInterval(id);
-  }, [queues]);
+    socket.on("live_data", onLiveData);
+    return () => {
+      socket.emit("leave_live_data");
+      socket.off("live_data", onLiveData);
+    };
+  }, [queues, setStats, stats]);
 
   const chartData = useMemo(
     () =>

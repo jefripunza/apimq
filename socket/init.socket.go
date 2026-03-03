@@ -1,6 +1,7 @@
 package socket
 
 import (
+	"apimq/modules/queue"
 	"apimq/variable"
 	"log"
 	"time"
@@ -9,12 +10,13 @@ import (
 )
 
 type liveStats struct {
-	TotalQueues    int64 `json:"total_queues"`
-	TotalMessages  int64 `json:"total_messages"`
-	TotalCompleted int64 `json:"total_completed"`
-	TotalFailed    int64 `json:"total_failed"`
-	TotalTiming    int64 `json:"total_timing"`
-	TotalPending   int64 `json:"total_pending"`
+	TotalQueues    int64          `json:"total_queues"`
+	TotalMessages  int64          `json:"total_messages"`
+	TotalCompleted int64          `json:"total_completed"`
+	TotalFailed    int64          `json:"total_failed"`
+	TotalTiming    int64          `json:"total_timing"`
+	TotalPending   int64          `json:"total_pending"`
+	Queue          map[string]int `json:"queue"`
 }
 
 func fetchLiveStats() liveStats {
@@ -25,6 +27,8 @@ func fetchLiveStats() liveStats {
 	variable.Db.Table("queue_messages").Where("status = ? AND is_ack = false", "failed").Count(&s.TotalFailed)
 	variable.Db.Table("queue_messages").Where("status = ?", "timing").Count(&s.TotalTiming)
 	variable.Db.Table("queue_messages").Where("status = ?", "pending").Count(&s.TotalPending)
+	// Get per-queue insert counts since last fetch (and reset)
+	s.Queue = queue.GetAndResetQueueInsertCounts()
 	return s
 }
 

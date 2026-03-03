@@ -8,6 +8,7 @@ export interface DashboardStats {
   total_failed: number;
   total_timing: number;
   total_pending: number;
+  queue?: Record<string, number>;
 }
 
 export const dashboardService = {
