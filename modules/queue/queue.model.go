@@ -11,7 +11,7 @@ type Queue struct {
 	ID             uuid.UUID  `json:"id" gorm:"type:char(36);primaryKey"`
 	Name           string     `json:"name" gorm:"not null"`
 	Key            string     `json:"key" gorm:"uniqueIndex;not null"`
-	Color          string     `json:"color" gorm:"default:#6366f1"` // missing field
+	Color          string     `json:"color" gorm:"default:#6366f1"`
 	Origin         string     `json:"origin" gorm:"not null"`
 	BatchCount     int        `json:"batch_count" gorm:"default:1"`
 	Timeout        int        `json:"timeout" gorm:"default:30"`
@@ -22,7 +22,7 @@ type Queue struct {
 	DelaySec       int        `json:"delay_sec" gorm:"default:0"`           // delay in seconds (only delay-based schema)
 	DelayStart     int        `json:"delay_start" gorm:"default:0"`         // start delay in seconds (only delay-based schema)
 	DelayEnd       int        `json:"delay_end" gorm:"default:0"`           // end delay in seconds (only delay-based schema)
-	IsWaitResponse bool       `json:"is_wait_response" gorm:"default:true"` // if true, wait for response, if false send without waiting for response (direct send without response) missing field
+	IsWaitResponse bool       `json:"is_wait_response" gorm:"default:true"` // if true, wait for response, if false send without waiting for response (direct send without response)
 	Headers        string     `json:"headers" gorm:"type:text"`             // JSON string
 	ErrorTrace     string     `json:"error_trace" gorm:"type:text"`         // JSON string
 	Enabled        bool       `json:"enabled" gorm:"default:true"`

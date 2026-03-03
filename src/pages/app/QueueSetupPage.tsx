@@ -84,6 +84,56 @@ export default function QueueSetupPage() {
     );
   }
 
+  const DialogDeleteButton = (
+    <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-neon-red border border-neon-red/30 hover:border-neon-red/50 hover:bg-neon-red/5 rounded-xl transition-all"
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete
+        </button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete queue?</DialogTitle>
+          <DialogDescription>
+            This action cannot be undone. This will permanently delete the queue{" "}
+            <span className="font-mono">{id}</span>.
+          </DialogDescription>
+        </DialogHeader>
+        {deleteError && (
+          <p className="text-sm text-neon-red font-mono">{deleteError}</p>
+        )}
+        <DialogFooter className="pt-2">
+          <button
+            type="button"
+            onClick={() => setIsDeleteOpen(false)}
+            className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={isDeleting}
+            onClick={handleDelete}
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-neon-red/80 hover:bg-neon-red disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              "Delete"
+            )}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
       {/* Page header */}
@@ -103,53 +153,7 @@ export default function QueueSetupPage() {
         </div>
 
         {/* Delete button */}
-        <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-          <DialogTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-neon-red border border-neon-red/30 hover:border-neon-red/50 hover:bg-neon-red/5 rounded-xl transition-all"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete queue?</DialogTitle>
-              <DialogDescription>
-                This action cannot be undone. This will permanently delete the
-                queue <span className="font-mono">{id}</span>.
-              </DialogDescription>
-            </DialogHeader>
-            {deleteError && (
-              <p className="text-sm text-neon-red font-mono">{deleteError}</p>
-            )}
-            <DialogFooter className="pt-2">
-              <button
-                type="button"
-                onClick={() => setIsDeleteOpen(false)}
-                className="px-5 py-2.5 text-sm font-semibold text-dark-300 hover:text-foreground border border-dark-600/50 hover:border-dark-500/60 rounded-xl transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={handleDelete}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-neon-red/80 hover:bg-neon-red disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {DialogDeleteButton}
       </div>
 
       <div className="pb-6">
