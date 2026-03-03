@@ -48,3 +48,8 @@ After the container is running, open:
 - For production, you **must** set `JWT_SECRET` to a strong value.
 - If you enable API keys, make sure they are distributed securely.
 - Whitelist can be used to restrict access to the `/queue` endpoint.
+
+## Credits
+
+- Developed by [jefripunza](https://github.com/jefripunza)
+- Open source &middot; [Built with Go + React + TailwindCSS](https://github.com/jefripunza/apimq)
