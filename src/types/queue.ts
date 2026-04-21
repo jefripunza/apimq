@@ -10,6 +10,15 @@ export type KeyStatus = "idle" | "checking" | "available" | "taken" | "error";
 
 export type QueueStatus = "running" | "idle" | "error";
 
+export type AuthMethod = "none" | "basic" | "bearer" | "api_key";
+
+export interface QueueAuth {
+  method: AuthMethod;
+  basic?: { username?: string; password?: string };
+  bearer?: { token?: string };
+  api_key?: { key?: string; header?: string };
+}
+
 export type Queue = {
   id: string;
   name: string;
@@ -26,6 +35,7 @@ export type Queue = {
   origin?: string;
   batchCount?: number;
   timeout?: number;
+  auth?: QueueAuth | Record<string, unknown>;
   headers?: Array<{ key: string; value: string }>;
   isSendNow?: boolean;
   sendLaterTime?: string;

@@ -18,7 +18,13 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uid } from "@/utils/random";
-import type { HeaderEntry, KeyStatus, Queue } from "@/types/queue";
+import type {
+  AuthMethod,
+  HeaderEntry,
+  KeyStatus,
+  Queue,
+  QueueAuth,
+} from "@/types/queue";
 import { useQueueStore } from "@/stores/queueStore";
 import type {
   CreateQueuePayload,
@@ -99,6 +105,16 @@ export default function QueueForm({
   const [errorWebhook, setErrorWebhook] = useState("");
   const [headers, setHeaders] = useState<HeaderEntry[]>([]);
 
+  // Auth state
+  const [authMethod, setAuthMethod] = useState<
+    "none" | "basic" | "bearer" | "api_key"
+  >("none");
+  const [authBasicUser, setAuthBasicUser] = useState("");
+  const [authBasicPass, setAuthBasicPass] = useState("");
+  const [authBearerToken, setAuthBearerToken] = useState("");
+  const [authApiKey, setAuthApiKey] = useState("");
+  const [authApiHeader, setAuthApiHeader] = useState("X-Api-Key");
+
   // Key check
   const [keyStatus, setKeyStatus] = useState<KeyStatus>("idle");
   const keyCheckTimer = useRef<number | null>(null);
@@ -128,6 +144,12 @@ export default function QueueForm({
       setErrorTrace(false);
       setErrorWebhook("");
       setHeaders([]);
+      setAuthMethod("none");
+      setAuthBasicUser("");
+      setAuthBasicPass("");
+      setAuthBearerToken("");
+      setAuthApiKey("");
+      setAuthApiHeader("X-Api-Key");
       setKeyStatus("idle");
       return;
     }
@@ -167,6 +189,15 @@ export default function QueueForm({
         value: h.value ?? "",
       })),
     );
+
+    const auth = queue.auth as QueueAuth;
+    setAuthMethod(auth?.method || "none");
+    setAuthBasicUser(auth?.basic?.username || "");
+    setAuthBasicPass(auth?.basic?.password || "");
+    setAuthBearerToken(auth?.bearer?.token || "");
+    setAuthApiKey(auth?.api_key?.key || "");
+    setAuthApiHeader(auth?.api_key?.header || "X-Api-Key");
+
     setKeyStatus("idle");
   }, [queue]);
 
@@ -235,6 +266,18 @@ export default function QueueForm({
         errorTracePayload.webhook = errorWebhook.trim();
       }
 
+      const authPayload: Record<string, unknown> = { method: authMethod };
+      if (authMethod === "basic") {
+        authPayload.basic = {
+          username: authBasicUser,
+          password: authBasicPass,
+        };
+      } else if (authMethod === "bearer") {
+        authPayload.bearer = { token: authBearerToken };
+      } else if (authMethod === "api_key") {
+        authPayload.api_key = { key: authApiKey, header: authApiHeader };
+      }
+
       const basePayload = {
         name: name.trim(),
         color,
@@ -255,6 +298,7 @@ export default function QueueForm({
         delayStart: isRandomDelay ? Number(delayStart || 0) : 0,
         delayEnd: isRandomDelay ? Number(delayEnd || 0) : 0,
         isWaitResponse,
+        auth: authPayload,
         errorTrace: errorTracePayload,
       };
 
@@ -366,6 +410,95 @@ export default function QueueForm({
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      <div
+        className={
+          "bg-dark-800/60 border border-dark-600/40 rounded-2xl p-6 space-y-4"
+        }
+      >
+        <SectionTitle>Authorizations</SectionTitle>
+        <div className="space-y-4">
+          <div>
+            <Label>Auth Method</Label>
+            <select
+              value={authMethod}
+              onChange={(e) => setAuthMethod(e.target.value as AuthMethod)}
+              className="flex h-11 w-full rounded-xl border border-dark-600/50 bg-dark-900/50 px-3 py-2 text-sm text-foreground shadow-sm shadow-black/5 ring-offset-background transition-all hover:border-dark-500/50"
+            >
+              <option value="none">None</option>
+              <option value="basic">Basic Auth</option>
+              <option value="bearer">Bearer Token</option>
+              <option value="api_key">API Key</option>
+            </select>
+          </div>
+
+          {authMethod === "basic" && (
+            <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
+              <div>
+                <Label>Username</Label>
+                <Input
+                  value={authBasicUser}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setAuthBasicUser(e.target.value)
+                  }
+                  placeholder="admin"
+                />
+              </div>
+              <div>
+                <Label>Password</Label>
+                <Input
+                  type="password"
+                  value={authBasicPass}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setAuthBasicPass(e.target.value)
+                  }
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+          )}
+
+          {authMethod === "bearer" && (
+            <div className="pl-4 border-l-2 border-accent-500/30">
+              <Label>Token</Label>
+              <Input
+                type="password"
+                value={authBearerToken}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setAuthBearerToken(e.target.value)
+                }
+                placeholder="eyJh..."
+              />
+            </div>
+          )}
+
+          {authMethod === "api_key" && (
+            <div className="grid grid-cols-2 gap-3 pl-4 border-l-2 border-accent-500/30">
+              <div>
+                <Label>Header Key</Label>
+                <Input
+                  value={authApiHeader}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setAuthApiHeader(e.target.value)
+                  }
+                  placeholder="X-Api-Key"
+                />
+              </div>
+              <div>
+                <Label>API Key</Label>
+                <Input
+                  type="password"
+                  value={authApiKey}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setAuthApiKey(e.target.value)
+                  }
+                  placeholder="your-api-key"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

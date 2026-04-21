@@ -24,6 +24,7 @@ type Queue struct {
 	DelayEnd       int        `json:"delay_end" gorm:"default:0"`           // end delay in seconds (only delay-based schema)
 	IsWaitResponse bool       `json:"is_wait_response" gorm:"default:true"` // if true, wait for response, if false send without waiting for response (direct send without response)
 	Headers        string     `json:"headers" gorm:"type:text"`             // JSON string
+	Auth           string     `json:"auth" gorm:"type:text"`                // JSON string (method, basic, bearer, api_key)
 	ErrorTrace     string     `json:"error_trace" gorm:"type:text"`         // JSON string
 	Enabled        bool       `json:"enabled" gorm:"default:true"`
 	CreatedAt      time.Time  `json:"created_at" gorm:"autoCreateTime"`

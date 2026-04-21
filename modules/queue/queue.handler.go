@@ -28,6 +28,7 @@ type CreateQueueRequest struct {
 	DelayStart     int                    `json:"delayStart"`
 	DelayEnd       int                    `json:"delayEnd"`
 	IsWaitResponse *bool                  `json:"isWaitResponse,omitempty"`
+	Auth           map[string]interface{} `json:"auth,omitempty"`
 	ErrorTrace     map[string]interface{} `json:"errorTrace,omitempty"`
 }
 
@@ -46,6 +47,7 @@ type UpdateQueueRequest struct {
 	DelayStart     int                    `json:"delayStart"`
 	DelayEnd       int                    `json:"delayEnd"`
 	IsWaitResponse *bool                  `json:"isWaitResponse,omitempty"`
+	Auth           map[string]interface{} `json:"auth,omitempty"`
 	ErrorTrace     map[string]interface{} `json:"errorTrace,omitempty"`
 }
 
@@ -78,6 +80,7 @@ func Create(c *fiber.Ctx) error {
 
 	// Marshal JSON fields
 	headersJSON, _ := json.Marshal(req.Headers)
+	authJSON, _ := json.Marshal(req.Auth)
 	errorTraceJSON, _ := json.Marshal(req.ErrorTrace)
 
 	// Parse send later time if provided
@@ -110,6 +113,7 @@ func Create(c *fiber.Ctx) error {
 		BatchCount:     req.BatchCount,
 		Timeout:        req.Timeout,
 		Headers:        string(headersJSON),
+		Auth:           string(authJSON),
 		IsSendNow:      req.IsSendNow,
 		SendLaterTime:  sendLaterTime,
 		IsUseDelay:     req.IsUseDelay,
@@ -275,6 +279,7 @@ func UpdateByID(c *fiber.Ctx) error {
 
 	// Marshal JSON fields
 	headersJSON, _ := json.Marshal(req.Headers)
+	authJSON, _ := json.Marshal(req.Auth)
 	errorTraceJSON, _ := json.Marshal(req.ErrorTrace)
 
 	// Parse send later time if provided
@@ -300,6 +305,7 @@ func UpdateByID(c *fiber.Ctx) error {
 	queue.BatchCount = req.BatchCount
 	queue.Timeout = req.Timeout
 	queue.Headers = string(headersJSON)
+	queue.Auth = string(authJSON)
 	queue.IsSendNow = req.IsSendNow
 	queue.SendLaterTime = sendLaterTime
 	queue.IsUseDelay = req.IsUseDelay
