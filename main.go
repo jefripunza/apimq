@@ -52,10 +52,10 @@ func main() {
 	socket.Init(io)
 
 	app := fiber.New(fiber.Config{
-		AppName:       "ApiMQ",
-		ServerHeader:  "ApiMQ",
-		Prefork:       false,
-		StrictRouting: true,
+		AppName:      "ApiMQ",
+		ServerHeader: "ApiMQ",
+		Prefork:      false,
+		// StrictRouting: true,
 		CaseSensitive: true,
 		BodyLimit:     1024 * 1024 * 10, // MB
 		Concurrency:   256 * 1024,
