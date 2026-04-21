@@ -276,6 +276,10 @@ curl -X POST http://localhost:3000/queue \\
                     <code>https://api.example.com/webhook</code>).
                   </td>
                 </tr>
+                <tr>
+                  <td>Color</td>
+                  <td>A hex color code used strictly for aesthetic visualization and categorization within the UI context.</td>
+                </tr>
               </tbody>
             </table>
             <h3>Optional Fields</h3>
@@ -333,6 +337,21 @@ curl -X POST http://localhost:3000/queue \\
                   <td>Headers</td>
                   <td>[]</td>
                   <td>Default HTTP headers added to every outgoing request.</td>
+                </tr>
+                <tr>
+                  <td>Authorizations</td>
+                  <td>None</td>
+                  <td>Automatically injects Basic Auth, Bearer Token, or custom API Keys into the outgoing HTTP request headers.</td>
+                </tr>
+                <tr>
+                  <td>Wait Response</td>
+                  <td>true</td>
+                  <td>Wait for the target HTTP response before completing the task. If disabled, operates asynchronously in a fire-and-forget mode.</td>
+                </tr>
+                <tr>
+                  <td>Error Trace</td>
+                  <td>None</td>
+                  <td>Configures a webhook URL to be notified automatically if the message delivery fails.</td>
                 </tr>
               </tbody>
             </table>
