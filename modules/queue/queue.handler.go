@@ -388,11 +388,11 @@ func GetAndResetQueueInsertCounts() map[string]int {
 
 func AddToMessage(c *fiber.Ctx) error {
 	var body struct {
-		Key     string                 `json:"key" validate:"required"`
-		Method  string                 `json:"method" validate:"required"`
-		Query   *string                `json:"query,omitempty"`
-		Body    map[string]interface{} `json:"body" validate:"required"`
-		Headers *string                `json:"headers,omitempty"`
+		Key     string                  `json:"key" validate:"required"`
+		Method  string                  `json:"method" validate:"required"`
+		Query   *map[string]interface{} `json:"query,omitempty"`
+		Body    *map[string]interface{} `json:"body,omitempty"`
+		Headers *map[string]interface{} `json:"headers,omitempty"`
 	}
 	if err := function.RequestBody(c, &body); err != nil {
 		return dto.BadRequest(c, err.Error(), nil)
@@ -409,6 +409,16 @@ func AddToMessage(c *fiber.Ctx) error {
 		initialStatus = QueueMessageStatusTiming
 	}
 
+	queryJSON, err := json.Marshal(body.Query)
+	if err != nil {
+		return dto.InternalServerError(c, "Failed to marshal query", nil)
+	}
+
+	headersJSON, err := json.Marshal(body.Headers)
+	if err != nil {
+		return dto.InternalServerError(c, "Failed to marshal headers", nil)
+	}
+
 	// json stringify body
 	bodyJSON, err := json.Marshal(body.Body)
 	if err != nil {
@@ -418,9 +428,9 @@ func AddToMessage(c *fiber.Ctx) error {
 	message := QueueMessage{
 		QueueID: queue.ID.String(),
 		Method:  body.Method,
-		Query:   body.Query,
+		Query:   string(queryJSON),
 		Body:    string(bodyJSON),
-		Headers: body.Headers,
+		Headers: string(headersJSON),
 		Status:  initialStatus,
 	}
 	if err := variable.Db.Create(&message).Error; err != nil {
@@ -531,10 +541,10 @@ func AckMessage(c *fiber.Ctx) error {
 
 // UpdateMessage - PUT /api/queue/message/:id
 type UpdateMessageRequest struct {
-	Method  string  `json:"method"`
-	Query   *string `json:"query,omitempty"`
-	Body    string  `json:"body"`
-	Headers *string `json:"headers,omitempty"`
+	Method  string                  `json:"method"`
+	Query   *map[string]interface{} `json:"query,omitempty"`
+	Body    *map[string]interface{} `json:"body,omitempty"`
+	Headers *map[string]interface{} `json:"headers,omitempty"`
 }
 
 func UpdateMessage(c *fiber.Ctx) error {
@@ -556,9 +566,27 @@ func UpdateMessage(c *fiber.Ctx) error {
 	if req.Method != "" {
 		message.Method = req.Method
 	}
-	message.Query = req.Query
-	message.Body = req.Body
-	message.Headers = req.Headers
+	if req.Query != nil {
+		queryJSON, err := json.Marshal(req.Query)
+		if err != nil {
+			return dto.InternalServerError(c, "Failed to marshal query", nil)
+		}
+		message.Query = string(queryJSON)
+	}
+	if req.Body != nil {
+		bodyJSON, err := json.Marshal(req.Body)
+		if err != nil {
+			return dto.InternalServerError(c, "Failed to marshal body", nil)
+		}
+		message.Body = string(bodyJSON)
+	}
+	if req.Headers != nil {
+		headersJSON, err := json.Marshal(req.Headers)
+		if err != nil {
+			return dto.InternalServerError(c, "Failed to marshal headers", nil)
+		}
+		message.Headers = string(headersJSON)
+	}
 
 	if err := variable.Db.Save(&message).Error; err != nil {
 		return dto.InternalServerError(c, "Failed to update message", nil)

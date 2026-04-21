@@ -83,7 +83,9 @@ curl -X POST http://localhost:3000/queue \\
   -d '{
     "key": "my-queue",
     "method": "POST",
-    "body": {"event": "user.signed_up", "id": 42}
+    "query": { "test": "test" },
+    "body": {"event": "user.signed_up", "id": 42},
+    "headers": { "Content-Type": "application/json" }
   }'`}</CodeBlock>
           </div>
         ),
