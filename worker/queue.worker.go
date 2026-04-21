@@ -469,7 +469,7 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 	// override User-Agent
 	req.Header.Set("User-Agent", "ApiMQ/1.0")
 
-	// merge queue-level headers
+	// merge queue-level headers (fixed)
 	if q.Headers != "" {
 		var queueHeaders []map[string]string
 		if err := json.Unmarshal([]byte(q.Headers), &queueHeaders); err == nil {
