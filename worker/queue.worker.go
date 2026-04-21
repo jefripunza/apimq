@@ -469,6 +469,40 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 	// override User-Agent
 	req.Header.Set("User-Agent", "ApiMQ/1.0")
 
+	// apply authorization
+	if q.Auth != "" {
+		var authData map[string]interface{}
+		if err := json.Unmarshal([]byte(q.Auth), &authData); err == nil {
+			method, _ := authData["method"].(string)
+			switch method {
+			case "basic":
+				if basic, ok := authData["basic"].(map[string]interface{}); ok {
+					user, _ := basic["username"].(string)
+					pass, _ := basic["password"].(string)
+					req.SetBasicAuth(user, pass)
+				}
+			case "bearer":
+				if bearer, ok := authData["bearer"].(map[string]interface{}); ok {
+					token, _ := bearer["token"].(string)
+					if token != "" {
+						req.Header.Set("Authorization", "Bearer "+token)
+					}
+				}
+			case "api_key":
+				if api, ok := authData["api_key"].(map[string]interface{}); ok {
+					key, _ := api["key"].(string)
+					header, _ := api["header"].(string)
+					if header == "" {
+						header = "X-Api-Key"
+					}
+					if key != "" {
+						req.Header.Set(header, key)
+					}
+				}
+			}
+		}
+	}
+
 	// merge queue-level headers (fixed)
 	if q.Headers != "" {
 		var queueHeaders []map[string]string
