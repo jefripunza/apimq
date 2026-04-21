@@ -27,3 +27,5 @@ bun.lock
 .env
 apimq
 /database/system.sqlite
+tmp
+temp

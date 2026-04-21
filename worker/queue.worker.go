@@ -474,8 +474,14 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		var queueHeaders []map[string]string
 		if err := json.Unmarshal([]byte(q.Headers), &queueHeaders); err == nil {
 			for _, h := range queueHeaders {
-				for k, v := range h {
-					req.Header.Set(k, v)
+				if key, hasKey := h["key"]; hasKey {
+					if key != "" {
+						req.Header.Set(key, h["value"])
+					}
+				} else {
+					for k, v := range h {
+						req.Header.Set(k, v)
+					}
 				}
 			}
 		}
