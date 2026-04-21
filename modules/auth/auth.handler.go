@@ -7,6 +7,7 @@ import (
 
 	"apimq/dto"
 	"apimq/environment"
+	"apimq/function"
 	"apimq/modules/setting"
 	"apimq/variable"
 
@@ -40,18 +41,12 @@ func ParseToken(tokenString string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-type LoginRequest struct {
-	Password string `json:"password"`
-}
-
 func Login(c *fiber.Ctx) error {
-	var req LoginRequest
-	if err := c.BodyParser(&req); err != nil {
-		return dto.BadRequest(c, "Invalid request body", nil)
+	var body struct {
+		Password string `json:"password" validate:"required"`
 	}
-
-	if req.Password == "" {
-		return dto.BadRequest(c, "Password is required", nil)
+	if err := function.RequestBody(c, &body); err != nil {
+		return dto.BadRequest(c, err.Error(), nil)
 	}
 
 	var s setting.Setting
@@ -60,8 +55,8 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// compare MD5 hash
-	hash := fmt.Sprintf("%x", md5.Sum([]byte(req.Password)))
-	// fmt.Printf("Req Password: %s | Now Password: %s | Hash: %s\n", req.Password, s.Value, hash)
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(body.Password)))
+	// fmt.Printf("Req Password: %s | Now Password: %s | Hash: %s\n", body.Password, s.Value, hash)
 	if hash != s.Value {
 		return dto.Unauthorized(c, "Invalid password (2)", nil)
 	}

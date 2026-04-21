@@ -2,6 +2,7 @@ package queue
 
 import (
 	"apimq/dto"
+	"apimq/function"
 	"apimq/variable"
 	"encoding/json"
 	"fmt"
@@ -12,127 +13,96 @@ import (
 	"gorm.io/gorm"
 )
 
-type CreateQueueRequest struct {
-	Name           string                 `json:"name"`
-	Key            string                 `json:"key"`
-	Color          string                 `json:"color"`
-	Origin         string                 `json:"origin"`
-	BatchCount     int                    `json:"batchCount"`
-	Timeout        int                    `json:"timeout"`
-	Headers        []map[string]string    `json:"headers"`
-	IsSendNow      bool                   `json:"isSendNow"`
-	SendLaterTime  *string                `json:"sendLaterTime,omitempty"`
-	IsUseDelay     bool                   `json:"isUseDelay"`
-	IsRandomDelay  bool                   `json:"isRandomDelay"`
-	DelaySec       int                    `json:"delaySec"`
-	DelayStart     int                    `json:"delayStart"`
-	DelayEnd       int                    `json:"delayEnd"`
-	IsWaitResponse *bool                  `json:"isWaitResponse,omitempty"`
-	Auth           map[string]interface{} `json:"auth,omitempty"`
-	ErrorTrace     map[string]interface{} `json:"errorTrace,omitempty"`
-}
-
-type UpdateQueueRequest struct {
-	Name           string                 `json:"name"`
-	Color          string                 `json:"color"`
-	Origin         string                 `json:"origin"`
-	BatchCount     int                    `json:"batchCount"`
-	Timeout        int                    `json:"timeout"`
-	Headers        []map[string]string    `json:"headers"`
-	IsSendNow      bool                   `json:"isSendNow"`
-	SendLaterTime  *string                `json:"sendLaterTime,omitempty"`
-	IsUseDelay     bool                   `json:"isUseDelay"`
-	IsRandomDelay  bool                   `json:"isRandomDelay"`
-	DelaySec       int                    `json:"delaySec"`
-	DelayStart     int                    `json:"delayStart"`
-	DelayEnd       int                    `json:"delayEnd"`
-	IsWaitResponse *bool                  `json:"isWaitResponse,omitempty"`
-	Auth           map[string]interface{} `json:"auth,omitempty"`
-	ErrorTrace     map[string]interface{} `json:"errorTrace,omitempty"`
-}
-
 type ToggleQueueRequest struct {
 	Enabled bool `json:"enabled"`
 }
 
 // Create - POST /api/queue
 func Create(c *fiber.Ctx) error {
-	var req CreateQueueRequest
-	if err := c.BodyParser(&req); err != nil {
-		return dto.BadRequest(c, "Invalid request body", nil)
+	var body struct {
+		Name           string                 `json:"name" validate:"required"`
+		Key            string                 `json:"key" validate:"required"`
+		Color          string                 `json:"color"`
+		Origin         string                 `json:"origin" validate:"required"`
+		BatchCount     int                    `json:"batchCount"`
+		Timeout        int                    `json:"timeout"`
+		Headers        []map[string]string    `json:"headers"`
+		IsSendNow      bool                   `json:"isSendNow"`
+		SendLaterTime  *string                `json:"sendLaterTime,omitempty"`
+		IsUseDelay     bool                   `json:"isUseDelay"`
+		IsRandomDelay  bool                   `json:"isRandomDelay"`
+		DelaySec       int                    `json:"delaySec"`
+		DelayStart     int                    `json:"delayStart"`
+		DelayEnd       int                    `json:"delayEnd"`
+		IsWaitResponse *bool                  `json:"isWaitResponse,omitempty"`
+		Auth           map[string]interface{} `json:"auth,omitempty"`
+		ErrorTrace     map[string]interface{} `json:"errorTrace,omitempty"`
 	}
-
-	if req.Name == "" {
-		return dto.BadRequest(c, "Name is required", nil)
-	}
-	if req.Key == "" {
-		return dto.BadRequest(c, "Key is required", nil)
-	}
-	if req.Origin == "" {
-		return dto.BadRequest(c, "Origin is required", nil)
+	if err := function.RequestBody(c, &body); err != nil {
+		return dto.BadRequest(c, err.Error(), nil)
 	}
 
 	// Check if key already exists
 	var existing Queue
-	if err := variable.Db.Where("key = ?", req.Key).First(&existing).Error; err == nil {
-		return dto.BadRequest(c, fmt.Sprintf("Queue with key '%s' already exists", req.Key), nil)
+	if err := variable.Db.Where("key = ?", body.Key).First(&existing).Error; err == nil {
+		return dto.BadRequest(c, fmt.Sprintf("Queue with key '%s' already exists", body.Key), nil)
 	}
 
 	// Marshal JSON fields
-	headersJSON, _ := json.Marshal(req.Headers)
-	authJSON, _ := json.Marshal(req.Auth)
-	errorTraceJSON, _ := json.Marshal(req.ErrorTrace)
+	headersJSON, _ := json.Marshal(body.Headers)
+	authJSON, _ := json.Marshal(body.Auth)
+	errorTraceJSON, _ := json.Marshal(body.ErrorTrace)
 
 	// Parse send later time if provided
 	var sendLaterTime *time.Time
-	if req.SendLaterTime != nil && *req.SendLaterTime != "" {
-		parsed, err := time.Parse(time.RFC3339, *req.SendLaterTime)
+	if body.SendLaterTime != nil && *body.SendLaterTime != "" {
+		parsed, err := time.Parse(time.RFC3339, *body.SendLaterTime)
 		if err == nil {
 			sendLaterTime = &parsed
 		}
 	}
 
 	// Normalize delay fields based on IsUseDelay
-	if !req.IsUseDelay {
-		req.IsRandomDelay = false
-		req.DelaySec = 0
-		req.DelayStart = 0
-		req.DelayEnd = 0
+	if !body.IsUseDelay {
+		body.IsRandomDelay = false
+		body.DelaySec = 0
+		body.DelayStart = 0
+		body.DelayEnd = 0
 	}
 
 	isWaitResponse := true
-	if req.IsWaitResponse != nil {
-		isWaitResponse = *req.IsWaitResponse
+	if body.IsWaitResponse != nil {
+		isWaitResponse = *body.IsWaitResponse
 	}
 
 	queue := Queue{
-		Name:           req.Name,
-		Key:            req.Key,
-		Color:          req.Color,
-		Origin:         req.Origin,
-		BatchCount:     req.BatchCount,
-		Timeout:        req.Timeout,
+		Name:           body.Name,
+		Key:            body.Key,
+		Color:          body.Color,
+		Origin:         body.Origin,
+		BatchCount:     body.BatchCount,
+		Timeout:        body.Timeout,
 		Headers:        string(headersJSON),
 		Auth:           string(authJSON),
-		IsSendNow:      req.IsSendNow,
+		IsSendNow:      body.IsSendNow,
 		SendLaterTime:  sendLaterTime,
-		IsUseDelay:     req.IsUseDelay,
-		IsRandomDelay:  req.IsRandomDelay,
-		DelaySec:       req.DelaySec,
-		DelayStart:     req.DelayStart,
-		DelayEnd:       req.DelayEnd,
+		IsUseDelay:     body.IsUseDelay,
+		IsRandomDelay:  body.IsRandomDelay,
+		DelaySec:       body.DelaySec,
+		DelayStart:     body.DelayStart,
+		DelayEnd:       body.DelayEnd,
 		IsWaitResponse: isWaitResponse,
 		ErrorTrace:     string(errorTraceJSON),
 		Enabled:        true,
 	}
 
-	if req.BatchCount == 0 {
+	if body.BatchCount == 0 {
 		queue.BatchCount = 1
 	}
-	if req.Timeout <= 0 {
+	if body.Timeout <= 0 {
 		queue.Timeout = 30
 	}
-	if req.Color == "" {
+	if body.Color == "" {
 		queue.Color = "#6366f1"
 	}
 
@@ -265,16 +235,26 @@ func UpdateByID(c *fiber.Ctx) error {
 		return dto.NotFound(c, "Queue not found", nil)
 	}
 
-	var req UpdateQueueRequest
-	if err := c.BodyParser(&req); err != nil {
-		return dto.BadRequest(c, "Invalid request body", nil)
+	var req struct {
+		Name           string                 `json:"name" validate:"required"`
+		Color          string                 `json:"color"`
+		Origin         string                 `json:"origin" validate:"required"`
+		BatchCount     int                    `json:"batchCount"`
+		Timeout        int                    `json:"timeout"`
+		Headers        []map[string]string    `json:"headers"`
+		IsSendNow      bool                   `json:"isSendNow"`
+		SendLaterTime  *string                `json:"sendLaterTime,omitempty"`
+		IsUseDelay     bool                   `json:"isUseDelay"`
+		IsRandomDelay  bool                   `json:"isRandomDelay"`
+		DelaySec       int                    `json:"delaySec"`
+		DelayStart     int                    `json:"delayStart"`
+		DelayEnd       int                    `json:"delayEnd"`
+		IsWaitResponse *bool                  `json:"isWaitResponse,omitempty"`
+		Auth           map[string]interface{} `json:"auth,omitempty"`
+		ErrorTrace     map[string]interface{} `json:"errorTrace,omitempty"`
 	}
-
-	if req.Name == "" {
-		return dto.BadRequest(c, "Name is required", nil)
-	}
-	if req.Origin == "" {
-		return dto.BadRequest(c, "Origin is required", nil)
+	if err := function.RequestBody(c, &req); err != nil {
+		return dto.BadRequest(c, err.Error(), nil)
 	}
 
 	// Marshal JSON fields
@@ -365,8 +345,8 @@ func PatchToggleByID(c *fiber.Ctx) error {
 	}
 
 	var req ToggleQueueRequest
-	if err := c.BodyParser(&req); err != nil {
-		return dto.BadRequest(c, "Invalid request body", nil)
+	if err := function.RequestBody(c, &req); err != nil {
+		return dto.BadRequest(c, err.Error(), nil)
 	}
 
 	queue.Enabled = req.Enabled
@@ -406,32 +386,20 @@ func GetAndResetQueueInsertCounts() map[string]int {
 	return result
 }
 
-type AddToMessageRequest struct {
-	Key     string                 `json:"key"`
-	Method  string                 `json:"method"`
-	Query   *string                `json:"query,omitempty"`
-	Body    map[string]interface{} `json:"body"`
-	Headers *string                `json:"headers,omitempty"`
-}
-
 func AddToMessage(c *fiber.Ctx) error {
-	var req AddToMessageRequest
-	if err := c.BodyParser(&req); err != nil {
-		return dto.BadRequest(c, "Invalid request body", nil)
+	var body struct {
+		Key     string                 `json:"key" validate:"required"`
+		Method  string                 `json:"method" validate:"required"`
+		Query   *string                `json:"query,omitempty"`
+		Body    map[string]interface{} `json:"body" validate:"required"`
+		Headers *string                `json:"headers,omitempty"`
 	}
-
-	if req.Key == "" {
-		return dto.BadRequest(c, "Queue ID is required", nil)
-	}
-	if req.Method == "" {
-		return dto.BadRequest(c, "Method is required", nil)
-	}
-	if len(req.Body) == 0 {
-		return dto.BadRequest(c, "Body is required", nil)
+	if err := function.RequestBody(c, &body); err != nil {
+		return dto.BadRequest(c, err.Error(), nil)
 	}
 
 	var queue Queue
-	if err := variable.Db.Where("key = ?", req.Key).First(&queue).Error; err != nil {
+	if err := variable.Db.Where("key = ?", body.Key).First(&queue).Error; err != nil {
 		return dto.NotFound(c, "Queue not found", nil)
 	}
 
@@ -442,17 +410,17 @@ func AddToMessage(c *fiber.Ctx) error {
 	}
 
 	// json stringify body
-	bodyJSON, err := json.Marshal(req.Body)
+	bodyJSON, err := json.Marshal(body.Body)
 	if err != nil {
 		return dto.InternalServerError(c, "Failed to marshal body", nil)
 	}
 
 	message := QueueMessage{
 		QueueID: queue.ID.String(),
-		Method:  req.Method,
-		Query:   req.Query,
+		Method:  body.Method,
+		Query:   body.Query,
 		Body:    string(bodyJSON),
-		Headers: req.Headers,
+		Headers: body.Headers,
 		Status:  initialStatus,
 	}
 	if err := variable.Db.Create(&message).Error; err != nil {
@@ -581,8 +549,8 @@ func UpdateMessage(c *fiber.Ctx) error {
 	}
 
 	var req UpdateMessageRequest
-	if err := c.BodyParser(&req); err != nil {
-		return dto.BadRequest(c, "Invalid request body", nil)
+	if err := function.RequestBody(c, &req); err != nil {
+		return dto.BadRequest(c, err.Error(), nil)
 	}
 
 	if req.Method != "" {
