@@ -13,33 +13,29 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, api fiber.Router) {
+func SetupRoutes(app *fiber.App) {
+	api := app.Group("/api")
+
 	// /api
 	example.RegisterRoutes(api)
 
 	// /api/auth
-	authApi := api.Group("/auth")
-	auth.RegisterPublicRoutes(authApi)
-	auth.RegisterProtectedRoutes(authApi)
+	auth.RegisterPublicRoutes(api.Group("/auth"))
+	auth.RegisterProtectedRoutes(api.Group("/auth", middlewares.UseToken))
 
 	// /api/setting (protected)
-	settingProtected := api.Group("/setting", middlewares.UseToken)
-	setting.RegisterRoutes(settingProtected)
+	setting.RegisterRoutes(api.Group("/setting", middlewares.UseToken))
 
 	// /api/queue (protected)
-	queueProtected := api.Group("/queue", middlewares.UseToken)
-	queue.RegisterRoutes(queueProtected)
-	queue.RegisterPublicRoutes(app)
+	queue.RegisterRoutes(api.Group("/queue", middlewares.UseToken))
+	queue.RegisterPublicRoutes(app.Group("/queue", middlewares.UseWhitelist, middlewares.UseApiKey))
 
 	// /api/dashboard (protected)
-	dashboardProtected := api.Group("/dashboard", middlewares.UseToken)
-	dashboard.RegisterRoutes(dashboardProtected)
+	dashboard.RegisterRoutes(api.Group("/dashboard", middlewares.UseToken))
 
 	// /api/whitelist (protected)
-	whitelistProtected := api.Group("/whitelist", middlewares.UseToken)
-	whitelist.RegisterRoutes(whitelistProtected)
+	whitelist.RegisterRoutes(api.Group("/whitelist", middlewares.UseToken))
 
 	// /api/apikey (protected)
-	apikeyProtected := api.Group("/apikey", middlewares.UseToken)
-	apikey.RegisterRoutes(apikeyProtected)
+	apikey.RegisterRoutes(api.Group("/apikey", middlewares.UseToken))
 }

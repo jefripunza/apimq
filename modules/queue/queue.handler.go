@@ -407,7 +407,6 @@ func GetAndResetQueueInsertCounts() map[string]int {
 }
 
 type AddToMessageRequest struct {
-	QueueID string  `json:"queue_id"`
 	Key     string  `json:"key"`
 	Method  string  `json:"method"`
 	Query   *string `json:"query,omitempty"`
@@ -421,7 +420,7 @@ func AddToMessage(c *fiber.Ctx) error {
 		return dto.BadRequest(c, "Invalid request body", nil)
 	}
 
-	if req.QueueID == "" && req.Key == "" {
+	if req.Key == "" {
 		return dto.BadRequest(c, "Queue ID is required", nil)
 	}
 	if req.Method == "" {
@@ -432,14 +431,8 @@ func AddToMessage(c *fiber.Ctx) error {
 	}
 
 	var queue Queue
-	if req.QueueID != "" {
-		if err := variable.Db.Where("id = ?", req.QueueID).First(&queue).Error; err != nil {
-			return dto.NotFound(c, "Queue not found", nil)
-		}
-	} else {
-		if err := variable.Db.Where("key = ?", req.Key).First(&queue).Error; err != nil {
-			return dto.NotFound(c, "Queue not found", nil)
-		}
+	if err := variable.Db.Where("key = ?", req.Key).First(&queue).Error; err != nil {
+		return dto.NotFound(c, "Queue not found", nil)
 	}
 
 	// Determine initial status based on queue timing config

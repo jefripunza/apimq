@@ -116,8 +116,7 @@ func main() {
 	})
 	app.Static("/upload", variable.UploadsPath)
 
-	api := app.Group("/api")
-	modules.SetupRoutes(app, api)
+	modules.SetupRoutes(app)
 
 	// Catch-all "joke" routes (matching Express behavior)
 	jokeRoutes := []string{"/api/route", "/_next", "/_next/server", "/app"}

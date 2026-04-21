@@ -355,8 +355,7 @@ Content-Type: application/json
 X-Api-Key: apimq_<your-key>   // optional but required if keys exist
 
 {
-  "key": "my-queue",           // queue key (or use queue_id)
-  "queue_id": "...",           // alternatively the queue UUID
+  "key": "my-queue",           // queue key
   "method": "POST",            // HTTP method to use when forwarding
   "query": "{}",               // optional query string object (JSON string)
   "body": "{'user': 1}",      // message body (JSON string)

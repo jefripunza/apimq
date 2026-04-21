@@ -1,8 +1,6 @@
 package queue
 
 import (
-	"apimq/middlewares"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -21,6 +19,6 @@ func RegisterRoutes(r fiber.Router) {
 	r.Put("/message/:id", UpdateMessage)
 }
 
-func RegisterPublicRoutes(app *fiber.App) {
-	app.Post("/queue", middlewares.UseWhitelist, middlewares.UseApiKey, AddToMessage)
+func RegisterPublicRoutes(r fiber.Router) {
+	r.Post("/", AddToMessage)
 }
