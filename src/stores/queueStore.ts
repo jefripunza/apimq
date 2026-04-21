@@ -69,6 +69,7 @@ function mapQueueApiToItem(q: QueueApi): Queue {
     delayStart: q.delay_start,
     delayEnd: q.delay_end,
     isWaitResponse: q.is_wait_response,
+    auth: safeJsonParse<Record<string, unknown>>(q.auth, {}),
     errorTrace: safeJsonParse<Record<string, unknown>>(q.error_trace, {}),
     createdAt: q.created_at,
     updatedAt: q.updated_at,
