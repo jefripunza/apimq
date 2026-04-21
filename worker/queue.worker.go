@@ -421,9 +421,9 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		return
 	}
 
-	if msg.Query != nil && *msg.Query != "" {
+	if msg.Query != "" {
 		var queryParams map[string]interface{}
-		if err := json.Unmarshal([]byte(*msg.Query), &queryParams); err == nil && len(queryParams) > 0 {
+		if err := json.Unmarshal([]byte(msg.Query), &queryParams); err == nil && len(queryParams) > 0 {
 			qv := parsedURL.Query()
 			for k, v := range queryParams {
 				qv.Set(k, fmt.Sprintf("%v", v))
@@ -522,9 +522,9 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 	}
 
 	// merge message-level headers (override queue headers)
-	if msg.Headers != nil && *msg.Headers != "" {
+	if msg.Headers != "" {
 		var msgHeaders map[string]interface{}
-		if err := json.Unmarshal([]byte(*msg.Headers), &msgHeaders); err == nil {
+		if err := json.Unmarshal([]byte(msg.Headers), &msgHeaders); err == nil {
 			for k, v := range msgHeaders {
 				req.Header.Set(k, fmt.Sprintf("%v", v))
 			}
