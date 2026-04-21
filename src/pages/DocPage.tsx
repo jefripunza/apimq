@@ -83,7 +83,7 @@ curl -X POST http://localhost:3000/queue \\
   -d '{
     "key": "my-queue",
     "method": "POST",
-    "body": "{\\"event\\": \\"user.signed_up\\", \\"id\\": 42}"
+    "body": {"event": "user.signed_up", "id": 42}
   }'`}</CodeBlock>
           </div>
         ),
@@ -278,7 +278,10 @@ curl -X POST http://localhost:3000/queue \\
                 </tr>
                 <tr>
                   <td>Color</td>
-                  <td>A hex color code used strictly for aesthetic visualization and categorization within the UI context.</td>
+                  <td>
+                    A hex color code used strictly for aesthetic visualization
+                    and categorization within the UI context.
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -341,17 +344,27 @@ curl -X POST http://localhost:3000/queue \\
                 <tr>
                   <td>Authorizations</td>
                   <td>None</td>
-                  <td>Automatically injects Basic Auth, Bearer Token, or custom API Keys into the outgoing HTTP request headers.</td>
+                  <td>
+                    Automatically injects Basic Auth, Bearer Token, or custom
+                    API Keys into the outgoing HTTP request headers.
+                  </td>
                 </tr>
                 <tr>
                   <td>Wait Response</td>
                   <td>true</td>
-                  <td>Wait for the target HTTP response before completing the task. If disabled, operates asynchronously in a fire-and-forget mode.</td>
+                  <td>
+                    Wait for the target HTTP response before completing the
+                    task. If disabled, operates asynchronously in a
+                    fire-and-forget mode.
+                  </td>
                 </tr>
                 <tr>
                   <td>Error Trace</td>
                   <td>None</td>
-                  <td>Configures a webhook URL to be notified automatically if the message delivery fails.</td>
+                  <td>
+                    Configures a webhook URL to be notified automatically if the
+                    message delivery fails.
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -377,7 +390,7 @@ X-Api-Key: apimq_<your-key>   // optional but required if keys exist
   "key": "my-queue",           // queue key
   "method": "POST",            // HTTP method to use when forwarding
   "query": "{}",               // optional query string object (JSON string)
-  "body": "{'user': 1}",      // message body (JSON string)
+  "body": {"user": 1},         // message body (JSON object)
   "headers": "{}"              // optional extra headers (JSON string)
 }`}</CodeBlock>
             <h3>Message Status Flow</h3>

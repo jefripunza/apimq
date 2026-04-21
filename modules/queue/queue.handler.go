@@ -407,11 +407,11 @@ func GetAndResetQueueInsertCounts() map[string]int {
 }
 
 type AddToMessageRequest struct {
-	Key     string  `json:"key"`
-	Method  string  `json:"method"`
-	Query   *string `json:"query,omitempty"`
-	Body    string  `json:"body"`
-	Headers *string `json:"headers,omitempty"`
+	Key     string                 `json:"key"`
+	Method  string                 `json:"method"`
+	Query   *string                `json:"query,omitempty"`
+	Body    map[string]interface{} `json:"body"`
+	Headers *string                `json:"headers,omitempty"`
 }
 
 func AddToMessage(c *fiber.Ctx) error {
@@ -426,7 +426,7 @@ func AddToMessage(c *fiber.Ctx) error {
 	if req.Method == "" {
 		return dto.BadRequest(c, "Method is required", nil)
 	}
-	if req.Body == "" {
+	if len(req.Body) == 0 {
 		return dto.BadRequest(c, "Body is required", nil)
 	}
 
@@ -441,11 +441,17 @@ func AddToMessage(c *fiber.Ctx) error {
 		initialStatus = QueueMessageStatusTiming
 	}
 
+	// json stringify body
+	bodyJSON, err := json.Marshal(req.Body)
+	if err != nil {
+		return dto.InternalServerError(c, "Failed to marshal body", nil)
+	}
+
 	message := QueueMessage{
 		QueueID: queue.ID.String(),
 		Method:  req.Method,
 		Query:   req.Query,
-		Body:    req.Body,
+		Body:    string(bodyJSON),
 		Headers: req.Headers,
 		Status:  initialStatus,
 	}
