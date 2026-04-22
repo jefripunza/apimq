@@ -308,7 +308,7 @@ export default function QueuePage() {
                         View details
                       </summary>
                       <div className="space-y-2 mt-2">
-                        {msg.query && (
+                        {msg.query && msg.query !== "null" && (
                           <div>
                             <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
                               Query
@@ -318,7 +318,7 @@ export default function QueuePage() {
                             </pre>
                           </div>
                         )}
-                        {msg.headers && (
+                        {msg.headers && msg.headers !== "null" && (
                           <div>
                             <p className="text-[10px] text-dark-500 font-semibold uppercase tracking-wide mb-1">
                               Headers
