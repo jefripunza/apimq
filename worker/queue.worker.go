@@ -623,6 +623,12 @@ func (m *Manager) processMessage(q *queue.Queue, msg *queue.QueueMessage) {
 		return
 	}
 
+	// fmt.Printf("Method: %s\n", req.Method)
+	// fmt.Printf("URL: %s\n", req.URL.String())
+	// fmt.Printf("Query: %v\n", req.URL.Query())
+	// fmt.Printf("Headers: %v\n", req.Header)
+	// fmt.Printf("Body: %v\n", req.Body)
+
 	// Wait for response (default behavior)
 	resp, err := client.Do(req)
 	if err != nil {

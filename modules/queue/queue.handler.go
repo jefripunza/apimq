@@ -409,17 +409,16 @@ func AddToMessage(c *fiber.Ctx) error {
 		initialStatus = QueueMessageStatusTiming
 	}
 
-	queryJSON, err := json.Marshal(body.Query)
-	if err != nil {
-		return dto.InternalServerError(c, "Failed to marshal query", nil)
+	var queryStr, headersStr string
+	if body.Query != nil {
+		qJSON, _ := json.Marshal(body.Query)
+		queryStr = string(qJSON)
+	}
+	if body.Headers != nil {
+		hJSON, _ := json.Marshal(body.Headers)
+		headersStr = string(hJSON)
 	}
 
-	headersJSON, err := json.Marshal(body.Headers)
-	if err != nil {
-		return dto.InternalServerError(c, "Failed to marshal headers", nil)
-	}
-
-	// json stringify body
 	bodyJSON, err := json.Marshal(body.Body)
 	if err != nil {
 		return dto.InternalServerError(c, "Failed to marshal body", nil)
@@ -428,9 +427,9 @@ func AddToMessage(c *fiber.Ctx) error {
 	message := QueueMessage{
 		QueueID: queue.ID.String(),
 		Method:  body.Method,
-		Query:   string(queryJSON),
+		Query:   queryStr,
 		Body:    string(bodyJSON),
-		Headers: string(headersJSON),
+		Headers: headersStr,
 		Status:  initialStatus,
 	}
 	if err := variable.Db.Create(&message).Error; err != nil {
